@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blouse Measurement Tracker (Cloud)</title>
@@ -13,27 +12,24 @@
 
     <style>
         :root {
-            --primary-color: #007bff;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-            --dark-color: #343a40;
+            --primary-color: #e91e63; /* Vibrant Pink */
+            --success-color: #4caf50;
+            --danger-color: #f44336;
+            --warning-color: #ff9800; /* Bright Orange */
+            --info-color: #00bcd4;   /* Bright Cyan/Turquoise */
+            --dark-color: #212529;
             --light-color: #f8f9fa;
             --text-muted: #6c757d;
-            --bg-start: #69f0ae;
-            --bg-end: #9c27b0;
+            --bg-start: #ffecd2; /* Light Peach */
+            --bg-end: #fcb69f;   /* Light Salmon */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: linear-gradient(135deg, var(--bg-start), var(--bg-end)); color: #333; min-height: 100vh; }
+        body { background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%); color: #333; min-height: 100vh; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px 15px 80px 15px; }
         .view { display: none; }
-        .view.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* New Attractive Login Page Styles */
-        #authContainer.view.active { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .login-container { display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 900px; min-height: 550px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; }
+        .view.active { display: block; }
+        #authContainer.view.active { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); }
+        .login-container { display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 900px; min-height: 550px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; animation: fadeIn 0.5s ease-in-out; }
         .login-info { background: rgba(255, 255, 255, 0.15); padding: 40px; color: white; display: flex; flex-direction: column; justify-content: center; text-align: center; }
         .login-info .icon { font-size: 5rem; margin-bottom: 20px; text-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .login-info h2 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; }
@@ -44,21 +40,19 @@
         .login-form-wrapper .form-group { position: relative; margin-bottom: 20px; }
         .login-form-wrapper .form-group .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
         .login-form-wrapper .form-input { width: 100%; padding: 12px 15px 12px 45px; border-radius: 50px; border: 1px solid #ddd; font-size: 1rem; background: #f9f9f9; }
-        .login-btn { width: 100%; padding: 12px; border-radius: 50px; border: none; background: linear-gradient(45deg, var(--info-color), var(--primary-color)); color: white; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .login-btn { width: 100%; padding: 12px; border-radius: 50px; border: none; background: linear-gradient(45deg, var(--warning-color), var(--primary-color)); color: white; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .login-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
         .auth-form-toggle { text-align: center; margin-top: 20px; color: var(--text-muted); }
         .auth-form-toggle a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
         @media (max-width: 768px) { .login-container { grid-template-columns: 1fr; } .login-info { display: none; } .login-form-wrapper { background: rgba(255, 255, 255, 0.9); border-radius: 20px; } }
-        
-        /* Main App Styles */
         header { text-align: center; margin-bottom: 25px; padding: 15px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); }
         .actions { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
         .btn { padding: 12px 20px; border: none; border-radius: 50px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease; }
-        .btn-primary { background: var(--primary-color); color: white; } .btn-secondary { background: #6c757d; color: white; } .btn-warning { background: var(--warning-color); color: #212529; } .btn-success { background: var(--success-color); color: white; } .btn-danger { background: var(--danger-color); color: white; }
+        .btn-primary { background: var(--primary-color); color: white; } .btn-secondary { background: #6c757d; color: white; } .btn-warning { background: var(--warning-color); color: var(--dark-color); } .btn-success { background: var(--success-color); color: white; } .btn-danger { background: var(--danger-color); color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); }
         .form-input { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;}
-        .section-title { color: white; font-weight: 600; font-size: 1.5rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+        .section-title { color: var(--dark-color); font-weight: 700; font-size: 1.5rem; text-shadow: 1px 1px 2px rgba(255,255,255,0.5); }
         .tailor-selection-section { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
         .measurement-section { display: none; margin-top: 25px; }
         .searchable-dropdown { position: relative; }
@@ -75,7 +69,7 @@
         .measurement-name { font-size: 1.3rem; font-weight: 700; color: var(--dark-color); }
         .card-actions { display: flex; gap: 10px; }
         .action-btn { width: 36px; height: 36px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 1rem; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); color: white; }
-        .action-btn.edit { background: var(--info-color); } .action-btn.delete { background: var(--danger-color); } .action-btn.expand { background: var(--warning-color); transition: transform 0.3s; }
+        .action-btn.edit { background: var(--info-color); } .action-btn.delete { background: var(--danger-color); } .action-btn.expand { background: var(--warning-color); color: var(--dark-color); }
         .action-btn.call { background: var(--success-color); }
         .measurement-card.expanded .expand { transform: rotate(180deg); }
         .measurement-details { max-height: 0; overflow: hidden; transition: max-height 0.5s ease; padding: 0 20px; }
@@ -127,6 +121,7 @@
     <div class="modal-overlay" id="tailorFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="tailorFormTitle"></h2><button class="close-modal">×</button></div><form id="tailorForm"><input type="hidden" id="tailorId"><div class="form-group"><label class="form-label">Tailor Name</label><input type="text" class="form-input" id="tailorNameInput" required></div><div class="form-group"><label class="form-label">Phone Number (optional)</label><input type="tel" class="form-input" id="tailorPhoneInput"></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Tailor</button></div></form></div></div>
     <div class="modal-overlay" id="measurementFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="measurementFormTitle"></h2><button class="close-modal">×</button></div><form id="measurementForm"><input type="hidden" id="measurementId"><div class="form-group"><label class="form-label" for="measurementNameInput">Measurement Name / ID</label><input type="text" class="form-input" id="measurementNameInput" required></div><hr><h4>Standard Measurements (<span class="unit-label"></span>)</h4><div class="measurement-grid"><div class="form-group"><label class="form-label">Sleeves Width</label><input type="number" step="any" class="form-input" data-field="sleevesWidth"></div><div class="form-group"><label class="form-label">Sleeves Height</label><input type="number" step="any" class="form-input" data-field="sleevesHeight"></div><div class="form-group"><label class="form-label">Back Neck Width</label><input type="number" step="any" class="form-input" data-field="backNeckWidth"></div><div class="form-group"><label class="form-label">Back Neck Height</label><input type="number" step="any" class="form-input" data-field="backNeckHeight"></div><div class="form-group"><label class="form-label">Back Full Height</label><input type="number" step="any" class="form-input" data-field="backFullHeight"></div><div class="form-group"><label class="form-label">Front Height</label><input type="number" step="any" class="form-input" data-field="frontHeight"></div></div><hr><h4>Custom Measurements</h4><div id="customFieldsFormContainer"></div><div class="custom-field-form"><input type="text" class="form-input" id="customFieldNameInput" placeholder="New field name..."><button type="button" class="btn btn-primary" id="addCustomFieldBtn">Add</button></div><div class="actions" style="margin-top:25px;"><button type="submit" class="btn btn-success save-btn footer-btn"><i class="fas fa-save"></i> Save Measurement</button></div></form></div></div>
     <div class="modal-overlay" id="settingsModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">Settings</h2><button class="close-modal">×</button></div><div style="display:grid; gap: 15px;"><div class="form-group"><h4>Measurement Unit</h4><select class="form-select form-input" id="unitSelect"><option value="cm">Centimeters (cm)</option><option value="in">Inches (in)</option></select></div><hr><h4>Data Management</h4><button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> Backup All My Data</button><label for="restoreFile" class="btn btn-warning" style="margin-top:10px; cursor: pointer;"><i class="fas fa-upload"></i> Restore from File</label><input type="file" id="restoreFile" style="display:none;" accept=".json"></div></div></div>
+    <div class="modal-overlay" id="restoreOptionsModal"><div class="modal-content" style="max-width: 500px; text-align: center;"><div class="modal-header" style="justify-content: center;"><h2 class="modal-title">Restore Options</h2></div><p style="margin-bottom: 25px;">How would you like to restore the data?</p><div style="display: grid; gap: 15px;"><div><button class="btn btn-danger" id="restoreReplaceBtn" style="width: 100%;"><i class="fas fa-exclamation-triangle"></i> Replace All Data</button><small style="display: block; margin-top: 5px; color: var(--text-muted);">Deletes all of your current data first.</small></div><div><button class="btn btn-success" id="restoreMergeBtn" style="width: 100%;"><i class="fas fa-sync-alt"></i> Merge with Existing Data</button><small style="display: block; margin-top: 5px; color: var(--text-muted);">Updates existing items and adds new ones.</small></div></div><div style="margin-top: 25px;"><button class="btn btn-secondary" id="restoreCancelBtn">Cancel</button></div></div></div>
     <div class="modal-overlay" id="confirmationModal"><div class="modal-content" style="max-width: 400px; text-align: center;"><h2 class="modal-title" id="confirmationTitle" style="justify-content: center;">Are you sure?</h2><p id="confirmationMessage"></p><div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;"><button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Confirm</button></div></div></div>
 
     <div id="notification-container"></div>
@@ -172,35 +167,79 @@
         
         function attachMeasurementListener(tailorId) { if (measurementsUnsubscribe) measurementsUnsubscribe(); measurementsUnsubscribe = measurementsCollection.where('tailorId', '==', tailorId).orderBy('measurementName').onSnapshot(snapshot => { localMeasurements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMeasurementList(); }, err => { console.error(err); showNotification('Error fetching measurements. An index might be required.', 'error'); }); }
         const renderMeasurementList = () => { const searchTerm = document.getElementById('measurementSearchInput').value.toLowerCase(); const filtered = localMeasurements.filter(m => m.measurementName.toLowerCase().includes(searchTerm)); measurementList.innerHTML = ''; if(filtered.length === 0) { measurementList.innerHTML = `<div class="welcome-message" style="margin-top:0;"><p>No measurements for this tailor yet. Click "Add Measurement".</p></div>`; return; } filtered.forEach(m => measurementList.innerHTML += createMeasurementCardHTML(m)); };
-        const createMeasurementCardHTML = (m) => `<div class="measurement-card" id="card-${m.id}"><div class="measurement-header"><h3 class="measurement-name">${m.measurementName}</h3><div class="card-actions"><button class="action-btn edit" data-id="${m.id}"><i class="fas fa-edit"></i></button><button class="action-btn delete" data-id="${m.id}"><i class="fas fa-trash"></i></button><button class="action-btn expand"><i class="fas fa-chevron-down"></i></button></div></div><div class="measurement-details"><div class="measurement-grid">${[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].map(f=>`<div class="measurement-item"><span class="measurement-label">${f.l}</span><span class="measurement-value">${fmt(f.v)}</span></div>`).join('')}${(m.customFields||[]).map(f=>`<div class="measurement-item"><span class="measurement-label">${f.name}</span><span class="measurement-value">${fmt(f.value)}</span></div>`).join('')}</div><div class="card-footer-actions"><button class="btn btn-success footer-btn share" data-id="${m.id}"><i class="fab fa-whatsapp"></i> Share Text</button><button class="btn btn-warning footer-btn save-image" data-id="${m.id}"><i class="fas fa-camera"></i> Save Image</button></div></div></div>`;
+        const createMeasurementCardHTML = (m) => `<div class="measurement-card" id="card-${m.id}"><div class="measurement-header"><h3 class="measurement-name">${m.measurementName}</h3><div class="card-actions"><button class="action-btn edit" data-id="${m.id}"><i class="fas fa-edit"></i></button><button class="action-btn delete" data-id="${m.id}"><i class="fas fa-trash"></i></button><button class="action-btn expand"><i class="fas fa-chevron-down"></i></button></div></div><div class="measurement-details"><div class="measurement-grid">${[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].map(f=>`<div class="measurement-item"><span class="measurement-label">${f.l}</span><span class="measurement-value">${fmt(f.v)}</span></div>`).join('')}${(m.customFields||[]).map(f=>`<div class="measurement-item"><span class="measurement-label">${f.name}</span><span class="measurement-value">${fmt(f.value)}</span></div>`).join('')}</div><div class="card-footer-actions"><button class="btn btn-success footer-btn share" data-id="${m.id}"><i class="fab fa-whatsapp"></i> Share</button><button class="btn btn-warning footer-btn save-image" data-id="${m.id}"><i class="fas fa-camera"></i> Save Image</button></div></div></div>`;
         
-        measurementList.addEventListener('click', (e) => {
-            const card = e.target.closest('.measurement-card'); if (!card) return;
-            const id = e.target.closest('.action-btn, .footer-btn')?.dataset.id;
-            if (e.target.closest('.action-btn.edit')) openMeasurementModal(false, id);
-            else if (e.target.closest('.action-btn.delete')) deleteMeasurement(id);
-            else if (e.target.closest('.footer-btn.share')) shareMeasurement(id);
-            else if (e.target.closest('.footer-btn.save-image')) saveImage(id);
-            else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded');
-        });
+        measurementList.addEventListener('click', (e) => { const card = e.target.closest('.measurement-card'); if (!card) return; const id = e.target.closest('.action-btn, .footer-btn')?.dataset.id; if (e.target.closest('.action-btn.edit')) openMeasurementModal(false, id); else if (e.target.closest('.action-btn.delete')) deleteMeasurement(id); else if (e.target.closest('.footer-btn.share')) shareMeasurement(id); else if (e.target.closest('.footer-btn.save-image')) saveImage(id); else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded'); });
 
         const openMeasurementModal = (isNew, id = null) => { const form = document.getElementById('measurementForm'); form.reset(); document.getElementById('measurementId').value = ''; currentCustomFields = []; if (isNew) document.getElementById('measurementFormTitle').textContent = 'Add New Measurement'; else { const m = localMeasurements.find(m => m.id == id); if (!m) return; document.getElementById('measurementFormTitle').textContent = 'Edit Measurement'; document.getElementById('measurementId').value = m.id; document.getElementById('measurementNameInput').value = m.measurementName; document.querySelectorAll('#measurementForm input[data-field]').forEach(i => i.value = toUnit(m[i.dataset.field])); currentCustomFields = m.customFields ? JSON.parse(JSON.stringify(m.customFields)) : []; } document.querySelectorAll('.unit-label').forEach(el => el.textContent = localSettings.unit); renderCustomFieldsInForm(currentCustomFields); openModal(document.getElementById('measurementFormModal')); };
         const renderCustomFieldsInForm = (fields=[])=>{const c=document.getElementById('customFieldsFormContainer');c.innerHTML=fields.map((f,i)=>`<div class="form-group"><label class="form-label">${f.name}</label><div class="custom-field-form"><input type="number" step="any" class="form-input" data-index="${i}" value="${toUnit(f.value)}"><button type="button" class="btn btn-danger" onclick="window.removeCustomField(${i})"><i class="fas fa-trash"></i></button></div></div>`).join('');};
         document.getElementById('addCustomFieldBtn').addEventListener('click',()=>{const n=document.getElementById('customFieldNameInput');if(n.value){currentCustomFields.push({name:n.value,value:null});renderCustomFieldsInForm(currentCustomFields);n.value='';}});
         window.removeCustomField=(i)=>{currentCustomFields.splice(i,1);renderCustomFieldsInForm(currentCustomFields);};
         const deleteMeasurement = (id) => { showConfirmation('Delete Measurement?', 'This action cannot be undone.', () => measurementsCollection.doc(id).delete()); };
-        const shareMeasurement=(id)=>{const m=localMeasurements.find(m=>m.id==id);if(!m)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};navigator.clipboard.writeText(getTxt(m)).then(()=>showNotification('Copied to clipboard!'),()=>showNotification('Copy failed.','error'))};
+        const shareMeasurement=(id)=>{const m=localMeasurements.find(m=>m.id==id);if(!m)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};const encodedText=encodeURIComponent(getTxt(m));window.open(`https://wa.me/?text=${encodedText}`,'_blank');};
         const saveImage=(id)=>{const card=document.getElementById(`card-${id}`);const wasExp=card.classList.contains('expanded');if(!wasExp)card.classList.add('expanded');setTimeout(()=>{html2canvas(card,{scale:2}).then(canvas=>{const link=document.createElement('a');link.download=`measurements_${id}.png`;link.href=canvas.toDataURL();link.click();if(!wasExp)card.classList.remove('expanded')}).catch(err => showNotification('Could not save image.', 'error'));},200)};
         document.getElementById('measurementSearchInput').addEventListener('input', renderMeasurementList);
         document.getElementById('addMeasurementBtn').addEventListener('click', () => openMeasurementModal(true));
-        
         document.getElementById('measurementForm').addEventListener('submit', async e => { e.preventDefault(); if (!selectedTailor) return showNotification('No tailor selected.', 'error'); const id = document.getElementById('measurementId').value; const data = { measurementName: document.getElementById('measurementNameInput').value, tailorId: selectedTailor.id, createdAt: new Date().toISOString() }; document.querySelectorAll('#measurementForm input[data-field]').forEach(i => data[i.dataset.field] = toCm(i.value)); document.querySelectorAll('#customFieldsFormContainer input').forEach(i=>currentCustomFields[i.dataset.index].value=toCm(i.value)); data.customFields = currentCustomFields; try { if (id) await measurementsCollection.doc(id).update(data); else await measurementsCollection.add(data); showNotification('Measurement saved!', 'success'); } catch (err) { showNotification('Error saving measurement.', 'error'); } closeModal(document.getElementById('measurementFormModal')); });
         
         document.getElementById('settingsBtn').addEventListener('click', () => { document.getElementById('unitSelect').value = localSettings.unit; openModal(document.getElementById('settingsModal')); });
         allModals.forEach(m => m.addEventListener('click', (e) => { if (e.target === m || e.target.classList.contains('close-modal')) closeModal(m); }));
         document.getElementById('unitSelect').addEventListener('change', (e) => { localSettings.unit = e.target.value; localStorage.setItem('blouse_settings', JSON.stringify(localSettings)); if (selectedTailor) renderMeasurementList(); });
         document.getElementById('backupBtn').addEventListener('click', async () => { if(!currentUser) return; const tailorsSnap = await tailorsCollection.where('ownerId', '==', currentUser.uid).get(); const myTailors = tailorsSnap.docs.map(d=>({id: d.id, ...d.data()})); const myTailorIds = myTailors.map(t=>t.id); let myMeasurements = []; if(myTailorIds.length > 0){ const measurementsSnap = await measurementsCollection.where('tailorId', 'in', myTailorIds).get(); myMeasurements = measurementsSnap.docs.map(d=>({id: d.id, ...d.data()})); } const data = JSON.stringify({ tailors: myTailors, measurements: myMeasurements }); const blob = new Blob([data], { type: 'application/json' }); const link = document.createElement('a'); link.download = 'measurements_backup.json'; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href);});
-        document.getElementById('restoreFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const data = JSON.parse(ev.target.result); if (data.tailors && data.measurements && currentUser) { showConfirmation('Restore Data?', 'This will add data from the file to your account. It will not delete existing data.', async () => { const batch = db.batch(); const tailorIdMap = {}; data.tailors.forEach(t => { const newTailorRef = tailorsCollection.doc(); tailorIdMap[t.id] = newTailorRef.id; const {id, ...tailorData} = t; batch.set(newTailorRef, { ...tailorData, ownerId: currentUser.uid }); }); data.measurements.forEach(m => { const newTailorId = tailorIdMap[m.tailorId]; if(newTailorId) { const {id, ...measurementData} = m; batch.set(measurementsCollection.doc(), { ...measurementData, tailorId: newTailorId }); }}); await batch.commit(); showNotification('Data restored.', 'success'); }); } else alert('Invalid file or not logged in.'); } catch (err) { alert('Error reading file.'); } }; r.readAsText(f); e.target.value = ''; });
+        
+        const showRestoreOptions = (backupData) => {
+            const modal = document.getElementById('restoreOptionsModal'), replaceBtn = document.getElementById('restoreReplaceBtn'), mergeBtn = document.getElementById('restoreMergeBtn'), cancelBtn = document.getElementById('restoreCancelBtn');
+            const cleanup = () => { replaceBtn.removeEventListener('click', handleReplace); mergeBtn.removeEventListener('click', handleMerge); cancelBtn.removeEventListener('click', cleanup); closeModal(modal); };
+            const handleReplace = async () => { cleanup(); showConfirmation('Are you sure?', 'This will DELETE all your current data before restoring.', async () => { try { showNotification('Deleting old data...'); const batch = db.batch(); const [tailorsSnap, measurementsSnap] = await Promise.all([ tailorsCollection.where('ownerId', '==', currentUser.uid).get(), measurementsCollection.where('ownerId', '==', currentUser.uid).get() ]); tailorsSnap.forEach(doc => batch.delete(doc.ref)); measurementsSnap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); showNotification('Restoring new data...'); await restoreData(backupData, true); } catch (err) { showNotification('Error clearing old data.', 'error'); } }); };
+            const handleMerge = async () => { cleanup(); showNotification('Merging data...'); await restoreData(backupData, false); };
+            openModal(modal); replaceBtn.addEventListener('click', handleReplace); mergeBtn.addEventListener('click', handleMerge); cancelBtn.addEventListener('click', cleanup);
+        };
+        const restoreData = async (backupData, isReplace) => {
+            try {
+                let existingTailors = []; let existingMeasurements = [];
+                if (!isReplace) {
+                    const tailorsSnap = await tailorsCollection.where('ownerId', '==', currentUser.uid).get();
+                    existingTailors = tailorsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    const existingTailorIds = existingTailors.map(t => t.id);
+                    if (existingTailorIds.length > 0) {
+                        const measurementsSnap = await measurementsCollection.where('tailorId', 'in', existingTailorIds).get();
+                        existingMeasurements = measurementsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    }
+                }
+                const batch = db.batch();
+                const tailorIdMap = {};
+                for (const backupTailor of backupData.tailors) {
+                    const existing = existingTailors.find(t => t.name === backupTailor.name);
+                    if (existing) {
+                        tailorIdMap[backupTailor.id] = existing.id;
+                        const {id, ownerId, ...dataToUpdate} = backupTailor;
+                        batch.update(tailorsCollection.doc(existing.id), dataToUpdate);
+                    } else {
+                        const newRef = tailorsCollection.doc();
+                        tailorIdMap[backupTailor.id] = newRef.id;
+                        const {id, ...dataToAdd} = backupTailor;
+                        batch.set(newRef, {...dataToAdd, ownerId: currentUser.uid});
+                    }
+                }
+                for (const backupMeasurement of backupData.measurements) {
+                    const liveTailorId = tailorIdMap[backupMeasurement.tailorId];
+                    if (!liveTailorId) continue;
+                    const existing = existingMeasurements.find(m => m.tailorId === liveTailorId && m.measurementName === backupMeasurement.measurementName);
+                    const {id, tailorId, ...data} = backupMeasurement;
+                    if (existing) {
+                        batch.update(measurementsCollection.doc(existing.id), {...data, tailorId: liveTailorId});
+                    } else {
+                        batch.set(measurementsCollection.doc(), {...data, tailorId: liveTailorId});
+                    }
+                }
+                await batch.commit();
+                showNotification('Data restore complete!', 'success');
+            } catch (err) {
+                console.error("Restore error: ", err);
+                showNotification('Error during data restore.', 'error');
+            }
+        };
+        document.getElementById('restoreFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const data = JSON.parse(ev.target.result); if (data.tailors && data.measurements && currentUser) { showRestoreOptions(data); } else alert('Invalid backup file or not logged in.'); } catch (err) { alert('Error reading file.'); } }; r.readAsText(f); e.target.value = ''; });
 
     });
     </script>
