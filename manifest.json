@@ -1,11 +1,11 @@
 {
-  "name": "Blouse Measurements",
-  "short_name": "Measurements",
+  "name": "Embroidery Business Suite",
+  "short_name": "Embroidery",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#6a11cb",
-  "theme_color": "#2575fc",
-  "description": "A cloud-synced app for tailors to manage blouse measurements.",
+  "background_color": "#FFDCDC",
+  "theme_color": "#FFF8F3",
+  "description": "An all-in-one tool for embroidery businesses to manage tailor orders, payments, and customer measurements. Works offline.",
   "icons": [
     {
       "src": "icon-192.png",
