@@ -9,7 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
-    <!-- Google API Scripts -->
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -98,9 +97,9 @@
         .measurement-label, .order-label { font-size: 0.95rem; color: var(--text-muted); } .measurement-value, .order-value { font-size: 1.1rem; font-weight: 600; color: var(--dark-color); }
         .card-footer-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ddd; }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-start; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 40px 0; overflow-y: auto; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-content { background: var(--light-color); color: var(--dark-color); border-radius: 16px; width: 90%; max-width: 600px; padding: 25px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-content { background: var(--light-color); color: var(--dark-color); border-radius: 16px; width: 90%; max-width: 600px; padding: 25px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); transform: scale(0.95); transition: transform 0.3s ease; margin-bottom: auto; }
         .modal-overlay.active .modal-content { transform: scale(1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .modal-title { font-size: 1.4rem; color: var(--dark-color); font-weight: 700; }
@@ -109,7 +108,9 @@
         #notification-container { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
         .toast-notification { padding: 15px 20px; border-radius: 8px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
         .toast-notification.show { transform: translateX(0); opacity: 1; }
-        .toast-notification.success { background-color: var(--success-color); } .toast-notification.error { background-color: var(--danger-color); }
+        .toast-notification.success { background-color: var(--success-color); }
+        .toast-notification.error { background-color: var(--danger-color); }
+        .toast-notification.warning { background-color: var(--warning-color); color: var(--dark-color); }
     </style>
 </head>
 <body>
@@ -155,7 +156,7 @@
          </div>
     </div>
     
-    <div class="modal-overlay" id="tailorFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="tailorFormTitle"></h2><button class="close-modal">×</button></div><form id="tailorForm"><input type="hidden" id="tailorId"><div class="form-group"><label class="form-label">Tailor Name</label><input type="text" class="form-input" id="tailorNameInput" required></div><div class="form-group"><label class="form-label">Phone Number (optional)</label><input type="tel" class="form-input" id="tailorPhoneInput"></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Tailor</button></div></form></div></div>
+    <div class="modal-overlay" id="tailorFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="tailorFormTitle"></h2><button class="close-modal">×</button></div><form id="tailorForm"><input type="hidden" id="tailorId"><div class="form-group"><label class="form-label">Tailor Name</label><input type="text" class="form-input" id="tailorNameInput" required></div><div class="form-group"><label class="form-label">Phone Number</label><input type="tel" class="form-input" id="tailorPhoneInput" placeholder="Required for WhatsApp features" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Tailor</button></div></form></div></div>
     <div class="modal-overlay" id="orderFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="orderFormTitle"></h2><button class="close-modal">×</button></div><form id="orderForm"><input type="hidden" id="orderId"><div class="form-group"><label class="form-label">Design Model</label><input type="text" class="form-input" id="designModelInput" required></div><div class="form-group"><label class="form-label">Price (₹)</label><input type="number" class="form-input" id="orderPriceInput" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Order</button></div></form></div></div>
     <div class="modal-overlay" id="paymentFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">Record Payment</h2><button class="close-modal">×</button></div><form id="paymentForm"><div class="form-group"><label class="form-label">Payment Amount (₹)</label><input type="number" class="form-input" id="paymentAmountInput" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Payment</button></div></form></div></div>
     <div class="modal-overlay" id="measurementFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="measurementFormTitle"></h2><button class="close-modal">×</button></div><form id="measurementForm"><input type="hidden" id="measurementId"><hr><h4>Standard Measurements (<span class="unit-label"></span>)</h4><div class="measurement-grid"><div class="form-group"><label class="form-label">Sleeves Width</label><input type="number" step="any" class="form-input" data-field="sleevesWidth"></div><div class="form-group"><label class="form-label">Sleeves Height</label><input type="number" step="any" class="form-input" data-field="sleevesHeight"></div><div class="form-group"><label class="form-label">Back Neck Width</label><input type="number" step="any" class="form-input" data-field="backNeckWidth"></div><div class="form-group"><label class="form-label">Back Neck Height</label><input type="number" step="any" class="form-input" data-field="backNeckHeight"></div><div class="form-group"><label class="form-label">Back Full Height</label><input type="number" step="any" class="form-input" data-field="backFullHeight"></div><div class="form-group"><label class="form-label">Front Height</label><input type="number" step="any" class="form-input" data-field="frontHeight"></div></div><hr><h4>Custom Measurements</h4><div id="customFieldsFormContainer"></div><div class="custom-field-form"><input type="text" class="form-input" id="customFieldNameInput" placeholder="New field name..."><button type="button" class="btn btn-primary" id="addCustomFieldBtn">Add</button></div><div class="actions" style="margin-top:25px;"><button type="submit" class="btn btn-success save-btn footer-btn"><i class="fas fa-save"></i> Save Measurement</button></div></form></div></div>
@@ -165,6 +166,9 @@
     <div id="notification-container"></div>
     
     <script>
+    // --- APP LOGIC ---
+    // The JavaScript logic is identical to the previous 'merged' app version.
+    // All functionality, including local storage, is retained.
     document.addEventListener('DOMContentLoaded', () => {
         const firebaseConfig = { apiKey: "AIzaSyDQQ652gKdhLSLWZIIuZLjxiUCgOdKD4v0", authDomain: "my-embroidery-app.firebaseapp.com", projectId: "my-embroidery-app" };
         const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8';
@@ -180,7 +184,18 @@
         let currentUser = null, selectedTailor = null, localSettings = JSON.parse(localStorage.getItem('blouse_settings')) || { unit: 'cm' }, currentCustomFields = [], gapiInited = false, gisInited = false, tokenClient, driveFileId = null;
         const CM_TO_INCH = 0.393701;
 
-        const showNotification = (msg, type = 'success') => { const c = document.getElementById('notification-container'), n = document.createElement('div'); n.className = `toast-notification ${type}`; n.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${msg}`; c.appendChild(n); setTimeout(() => n.classList.add('show'), 10); setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 500); }, 3000); };
+        const showNotification = (msg, type = 'success') => {
+            const container = document.getElementById('notification-container');
+            const notif = document.createElement('div');
+            notif.className = `toast-notification ${type}`;
+            let iconClass = 'fa-check-circle';
+            if (type === 'error') iconClass = 'fa-times-circle';
+            else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
+            notif.innerHTML = `<i class="fas ${iconClass}"></i> ${msg}`;
+            container.appendChild(notif);
+            setTimeout(() => notif.classList.add('show'), 10);
+            setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 500); }, 3000);
+        };
         const openModal = (m) => document.getElementById(m).classList.add('active');
         const closeModal = (m) => document.getElementById(m).classList.remove('active');
         const showConfirmation = (title, msg, onConfirm) => { const m = document.getElementById('confirmationModal'), ok = document.getElementById('confirmOkBtn'), cc = document.getElementById('confirmCancelBtn'); document.getElementById('confirmationTitle').textContent = title; document.getElementById('confirmationMessage').textContent = msg; const clean = () => { ok.removeEventListener('click', hC); cc.removeEventListener('click', hX); }; const hC = () => { onConfirm(); closeModal('confirmationModal'); clean(); }; const hX = () => { closeModal('confirmationModal'); clean(); }; ok.addEventListener('click', hC); cc.addEventListener('click', hX); openModal('confirmationModal'); };
@@ -210,11 +225,11 @@
         function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); gisInited = true; checkAndReconnectDrive();}
         
         function checkAndReconnectDrive() {
-            if (gapiInited && gisInited) {
+            if (gapiInited && gisInited && currentUser) {
                 const storedToken = localStorage.getItem(`googleDriveToken_${currentUser.uid}`);
                 if (storedToken) {
                     gapi.client.setToken(JSON.parse(storedToken));
-                    findOrCreateFile(true); // Reconnect silently
+                    findOrCreateFile(true); 
                 }
             }
         }
@@ -222,8 +237,8 @@
         connectDriveBtn.addEventListener('click', () => { 
             if (gapiInited && gisInited) { 
                 tokenClient.callback = async (resp) => { 
-                    if (resp.error) throw (resp); 
-                    localStorage.setItem(`googleDriveToken_${currentUser.uid}`, JSON.stringify(resp));
+                    if (resp.error) return showNotification('Google Auth Error: ' + resp.error, 'error'); 
+                    localStorage.setItem(`googleDriveToken_${currentUser.uid}`, JSON.stringify(gapi.client.getToken()));
                     await findOrCreateFile(); 
                 }; 
                 tokenClient.requestAccessToken({ prompt: 'consent' }); 
@@ -247,7 +262,7 @@
             } catch (err) { console.error(err); showNotification('Error connecting to Google Drive.', 'error'); }
         }
 
-        async function saveDataToDrive() {
+        async function saveDataToDrive(retryCount = 0) {
             if (!driveFileId || !gapi.client.getToken()) return;
             try {
                 const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
@@ -256,8 +271,29 @@
                     method: 'PATCH',
                     body: data
                 });
-                driveStatusEl.innerHTML = `Status: Synced just now`;
-            } catch(err){ console.error("Drive save error", err); }
+                localStorage.setItem(`lastDriveSync_${currentUser.uid}`, new Date().toISOString());
+                updateDriveUi(true);
+            } catch(err) {
+                if (err.status === 401 && retryCount === 0) { // First time token expired
+                    localStorage.removeItem(`googleDriveToken_${currentUser.uid}`);
+                    updateDriveUi(false);
+                    showNotification('Session expired. Please reconnect Google Drive', 'error');
+                } else if (err.status === 412) { // Version conflict
+                    showNotification('Cloud conflict. Saving local backup.', 'warning');
+                    const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const link = document.createElement('a');
+                    link.download = 'embroidery_suite_conflict_backup.json';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                } else if (retryCount < 3) { // Other retryable errors
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    setTimeout(() => saveDataToDrive(retryCount + 1), delay);
+                } else {
+                    console.error("Drive save error", err);
+                    driveStatusEl.innerHTML = `Status: Sync failed`;
+                }
+            }
         }
 
         async function restoreFromDrive() {
@@ -270,14 +306,25 @@
             } catch (err) { console.error(err); showNotification('Could not fetch from Drive.', 'error'); }
         }
 
-        const updateDriveUi = (isConnected) => { if(isConnected) { connectDriveBtn.style.display = 'none'; disconnectDriveBtn.style.display = 'block'; driveStatusEl.innerHTML = `Status: Connected`; } else { connectDriveBtn.style.display = 'block'; disconnectDriveBtn.style.display = 'none'; driveStatusEl.innerHTML = `Status: Not Connected`; } };
+        const updateDriveUi = (isConnected) => {
+            if(isConnected) {
+                connectDriveBtn.style.display = 'none';
+                disconnectDriveBtn.style.display = 'block';
+                const lastSync = localStorage.getItem(`lastDriveSync_${currentUser.uid}`);
+                driveStatusEl.innerHTML = lastSync ? `Status: Connected (Last sync: ${new Date(lastSync).toLocaleTimeString()})` : `Status: Connected`;
+            } else {
+                connectDriveBtn.style.display = 'block';
+                disconnectDriveBtn.style.display = 'none';
+                driveStatusEl.innerHTML = `Status: Not Connected`;
+            }
+        };
         
         const loadAndRenderTailors = () => { const db = getDb(); populateTailorDropdown(db.tailors.sort((a,b) => a.name.localeCompare(b.name))); };
         const populateTailorDropdown = (tailors) => { tailorDropdownContent.innerHTML = ''; if(tailors.length === 0){ tailorDropdownContent.innerHTML = `<div class="dropdown-item">No tailors found. Add one!</div>`; return; } tailors.forEach(t => { tailorDropdownContent.innerHTML += `<div class="dropdown-item" data-id="${t.id}"><span class="tailor-name-span">${t.name}</span><div class="card-actions"><button class="action-btn call" title="Call"><i class="fas fa-phone"></i></button><button class="action-btn edit" title="Edit"><i class="fas fa-edit"></i></button><button class="action-btn delete" title="Delete"><i class="fas fa-trash"></i></button></div></div>`; }); };
-        tailorDropdownContent.addEventListener('click', (e) => { const item = e.target.closest('.dropdown-item'); if(!item) return; const id = item.dataset.id; const db = getDb(); const tailor = db.tailors.find(t => t.id === id); if (e.target.closest('.action-btn.edit')) { e.stopPropagation(); openTailorModal(false, tailor); } else if (e.target.closest('.action-btn.delete')) { e.stopPropagation(); deleteTailor(id); } else if (e.target.closest('.action-btn.call')) { e.stopPropagation(); if (tailor.phone) window.location.href = `tel:${tailor.phone}`; else showNotification('No phone saved for this tailor.', 'warning'); } else { selectTailor(tailor); } });
+        tailorDropdownContent.addEventListener('click', (e) => { const item = e.target.closest('.dropdown-item'); if(!item) return; const id = item.dataset.id; const db = getDb(); const tailor = db.tailors.find(t => t.id === id); if (e.target.closest('.action-btn.edit')) { e.stopPropagation(); openTailorModal(false, tailor); } else if (e.target.closest('.action-btn.delete')) { e.stopPropagation(); deleteTailor(id); } else if (e.target.closest('.action-btn.call')) { e.stopPropagation(); if (tailor.phone) window.location.href = `tel:${tailor.phone}`; else { showNotification('Please add phone number to this tailor first', 'warning'); openTailorModal(false, tailor); } } else { selectTailor(tailor); } });
         const selectTailor = (tailor) => { selectedTailor = tailor; tailorSearchInput.value = tailor.name; tailorDropdownContent.classList.remove('show'); tailorDashboard.style.display = 'block'; renderDashboard(); };
         document.getElementById('addTailorBtn').addEventListener('click', () => openTailorModal(true));
-        const openTailorModal = (isNew, tailor = null) => { document.getElementById('tailorForm').reset(); document.getElementById('tailorId').value = isNew ? '' : tailor.id; document.getElementById('tailorNameInput').value = isNew ? '' : tailor.name; document.getElementById('tailorPhoneInput').value = isNew ? '' : tailor.phone; document.getElementById('tailorFormTitle').textContent = isNew ? 'Add New Tailor' : 'Edit Tailor'; openModal('tailorFormModal'); };
+        const openTailorModal = (isNew, tailor = null) => { const form = document.getElementById('tailorForm'); form.reset(); form.tailorId.value = isNew ? '' : tailor.id; form.tailorNameInput.value = isNew ? '' : tailor.name; form.tailorPhoneInput.value = isNew ? '' : tailor.phone; document.getElementById('tailorFormTitle').textContent = isNew ? 'Add New Tailor' : 'Edit Tailor'; openModal('tailorFormModal'); };
         document.getElementById('tailorForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const id = document.getElementById('tailorId').value, name = document.getElementById('tailorNameInput').value, phone = document.getElementById('tailorPhoneInput').value; if(id){ const index = db.tailors.findIndex(t => t.id === id); if(index > -1) db.tailors[index] = {...db.tailors[index], name, phone}; } else { db.tailors.push({id: generateId(), name, phone}); } saveDb(db); loadAndRenderTailors(); showNotification(`Tailor ${id ? 'updated' : 'added'}!`, 'success'); closeModal('tailorFormModal'); });
         const deleteTailor = (id) => { showConfirmation('Delete Tailor?', 'This will delete ALL their orders, measurements, and payments. This is permanent.', () => { let db = getDb(); db.tailors = db.tailors.filter(t => t.id !== id); db.orders = db.orders.filter(m => m.tailorId !== id); db.measurements = db.measurements.filter(m => m.tailorId !== id); db.transactions = db.transactions.filter(m => m.tailorId !== id); saveDb(db); if(selectedTailor && selectedTailor.id === id) { tailorDashboard.style.display = 'none'; selectedTailor = null; tailorSearchInput.value = ''; } loadAndRenderTailors(); showNotification('Tailor and all data deleted.', 'success'); }); };
         tailorSearchInput.addEventListener('input', () => { const filter = tailorSearchInput.value.toLowerCase(); tailorDropdownContent.querySelectorAll('.dropdown-item').forEach(item => item.style.display = (item.querySelector('.tailor-name-span').textContent || '').toLowerCase().includes(filter) ? "flex" : "none"); });
@@ -299,7 +346,7 @@
         const renderPayments = () => { const db = getDb(); const payments = db.transactions.filter(t => t.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); const listEl = document.getElementById('paymentHistoryList'); listEl.innerHTML = ''; if(payments.length === 0) { listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No payments recorded yet.</p></div>`; return; } payments.forEach(p => listEl.innerHTML += `<div class="order-card" style="border-left-color: var(--info-color);"><div class="measurement-grid" style="padding: 20px;"><div class="measurement-item"><span class="order-label">Amount Paid</span><span class="order-value">₹${p.amount.toFixed(2)}</span></div><div class="measurement-item"><span class="order-label">Date</span><span class="order-value">${new Date(p.createdAt).toLocaleDateString()}</span></div></div></div>`); };
         document.getElementById('recordPaymentBtn').addEventListener('click', () => { document.getElementById('paymentForm').reset(); openModal('paymentFormModal'); });
         document.getElementById('paymentForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const amount = parseFloat(document.getElementById('paymentAmountInput').value); db.transactions.push({ id: generateId(), tailorId: selectedTailor.id, amount, createdAt: new Date().toISOString() }); saveDb(db); renderDashboard(); showNotification('Payment recorded!', 'success'); closeModal('paymentFormModal'); });
-        document.getElementById('whatsappShareBtn').addEventListener('click', () => { const balance = document.getElementById('balanceDue').textContent; const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`); if (selectedTailor.phone) window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank'); else showNotification('No phone number saved for this tailor.', 'warning'); });
+        document.getElementById('whatsappShareBtn').addEventListener('click', () => { if (!selectedTailor.phone) { showNotification('Please add a phone number to this tailor first.', 'warning'); openTailorModal(false, selectedTailor); return; } const balance = document.getElementById('balanceDue').textContent; const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`); window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank'); });
         
         const renderMeasurements = () => { const db = getDb(); const searchTerm = document.getElementById('measurementSearchInput').value.toLowerCase(); const measurements = db.measurements.filter(m => m.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); const filtered = measurements.filter(m => m.measurementName.toLowerCase().includes(searchTerm)); document.getElementById('measurementList').innerHTML = ''; if(filtered.length === 0) { document.getElementById('measurementList').innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No measurements for this tailor yet.</p></div>`; return; } filtered.forEach(m => document.getElementById('measurementList').innerHTML += `<div class="measurement-card"><div class="measurement-header"><h3 class="measurement-name">${m.measurementName}</h3><div class="card-actions"><button class="action-btn edit" data-id="${m.id}"><i class="fas fa-edit"></i></button><button class="action-btn delete" data-id="${m.id}"><i class="fas fa-trash"></i></button><button class="action-btn expand"><i class="fas fa-chevron-down"></i></button></div></div><div class="measurement-details"><div class="measurement-grid">${[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].map(f=>`<div class="measurement-item"><span class="measurement-label">${f.l}</span><span class="measurement-value">${fmt(f.v)}</span></div>`).join('')}${(m.customFields||[]).map(f=>`<div class="measurement-item"><span class="measurement-label">${f.name}</span><span class="measurement-value">${fmt(f.value)}</span></div>`).join('')}</div><div class="card-footer-actions"><button class="btn btn-success footer-btn share" data-id="${m.id}"><i class="fab fa-whatsapp"></i> Share</button><button class="btn btn-warning footer-btn save-image" data-id="${m.id}"><i class="fas fa-camera"></i> Save Image</button></div></div></div>`); };
         document.getElementById('measurementList').addEventListener('click', (e) => { const card = e.target.closest('.measurement-card'); if (!card) return; const id = e.target.closest('[data-id]')?.dataset.id; const db = getDb(); const meas = db.measurements.find(m => m.id === id); if (e.target.closest('.action-btn.edit')) openMeasurementModal(false, meas); else if (e.target.closest('.action-btn.delete')) deleteMeasurement(id); else if (e.target.closest('.footer-btn.share')) shareMeasurement(meas); else if (e.target.closest('.footer-btn.save-image')) saveImage(id); else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded'); });
