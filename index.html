@@ -1,3 +1,5 @@
+--- START OF FILE index.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -111,6 +113,37 @@
         .toast-notification.success { background-color: var(--success-color); }
         .toast-notification.error { background-color: var(--danger-color); }
         .toast-notification.warning { background-color: var(--warning-color); color: var(--dark-color); }
+
+        /* Styles for improved search box */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-container .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        
+        .search-container .search-input { /* Changed from .form-input to .search-input for specificity */
+            width: 100%;
+            padding: 12px 20px 12px 45px; /* Adjusted padding for icon */
+            border-radius: 50px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            background: #fff;
+            color: var(--dark-color);
+            transition: all 0.3s ease;
+        }
+        
+        .search-container .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 140, 105, 0.2);
+            outline: none;
+        }
     </style>
 </head>
 <body>
@@ -150,7 +183,11 @@
             </div>
             <div id="measurementsTab" class="tab-content">
                 <div class="section-header"><h3 class="section-title">Measurements</h3><button class="btn btn-success" id="addMeasurementBtn"><i class="fas fa-plus"></i> Add Measurement</button></div>
-                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="measurementSearchInput" placeholder="Search measurements..."></div>
+                <!-- UPDATED SEARCH BOX HTML HERE -->
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="measurementSearchInput" placeholder="Search measurements...">
+                </div>
                 <div class="measurement-list" id="measurementList"></div>
             </div>
          </div>
@@ -167,11 +204,9 @@
     
     <script>
     // --- APP LOGIC ---
-    // The JavaScript logic is identical to the previous 'merged' app version.
-    // All functionality, including local storage, is retained.
     document.addEventListener('DOMContentLoaded', () => {
         const firebaseConfig = { apiKey: "AIzaSyDQQ652gKdhLSLWZIIuZLjxiUCgOdKD4v0", authDomain: "my-embroidery-app.firebaseapp.com", projectId: "my-embroidery-app" };
-        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8';
+        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8'; // Ensure this is restricted in Google Cloud Console
         const CLIENT_ID = '62991104743-7sppptie4s6rf98tu1tkn2057dtq7ht7.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
@@ -356,7 +391,38 @@
         window.removeCustomField=(i)=>{currentCustomFields.splice(i,1);renderCustomFieldsInForm(currentCustomFields);};
         const deleteMeasurement = id => { showConfirmation('Delete Measurement?', 'This cannot be undone.', () => { let db = getDb(); db.measurements = db.measurements.filter(m => m.id !== id); saveDb(db); renderMeasurements(); showNotification('Measurement deleted.', 'success'); }); };
         const shareMeasurement=meas=>{if(!meas)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};const encodedText=encodeURIComponent(getTxt(meas));window.open(`https://wa.me/?text=${encodedText}`,'_blank');};
-        const saveImage=id=>{const card=document.getElementById(`card-${id}`);const wasExp=card.classList.contains('expanded');if(!wasExp)card.classList.add('expanded');setTimeout(()=>{html2canvas(card,{backgroundColor: 'var(--light-color)'}).then(canvas=>{const link=document.createElement('a');link.download=`measurements_${id}.png`;link.href=canvas.toDataURL();link.click();if(!wasExp)card.classList.remove('expanded')}).catch(err => showNotification('Could not save image.', 'error'));},200)};
+        
+        // UPDATED saveImage FUNCTION
+        const saveImage = id => {
+            const card = document.querySelector(`.measurement-card [data-id="${id}"]`).closest('.measurement-card');
+            if (!card) { // Defensive check
+                console.error('Could not find measurement card for ID:', id);
+                showNotification('Could not find measurement card to save.', 'error');
+                return;
+            }
+            const wasExp = card.classList.contains('expanded');
+            if (!wasExp) card.classList.add('expanded');
+            
+            setTimeout(() => {
+                html2canvas(card, {
+                    backgroundColor: 'var(--light-color)',
+                    scale: 2, // Higher quality
+                    logging: false,
+                    useCORS: true 
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `measurements_${id}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    if (!wasExp) card.classList.remove('expanded');
+                }).catch(err => {
+                    console.error('Error saving image:', err);
+                    showNotification('Could not save image.', 'error');
+                    if (!wasExp) card.classList.remove('expanded'); // Ensure cleanup on error too
+                });
+            }, 200); // Small delay to ensure styles are applied if card was just expanded
+        };
+
         document.getElementById('measurementSearchInput').addEventListener('input', renderMeasurements);
         document.getElementById('addMeasurementBtn').addEventListener('click', () => openMeasurementModal(true));
         document.getElementById('measurementForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const id = document.getElementById('measurementId').value; const now = new Date(); const data = { tailorId: selectedTailor.id, createdAt: now.toISOString() }; document.querySelectorAll('#measurementForm input[data-field]').forEach(i => data[i.dataset.field] = toCm(i.value)); document.querySelectorAll('#customFieldsFormContainer input').forEach(i=>currentCustomFields[i.dataset.index].value=toCm(i.value)); data.customFields = currentCustomFields; if(id){ const index = db.measurements.findIndex(m=>m.id === id); if(index > -1) db.measurements[index] = {...db.measurements[index], ...data}; } else { data.id = generateId(); data.measurementName = `Meas. - ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`; db.measurements.push(data); } saveDb(db); renderMeasurements(); showNotification('Measurement saved!', 'success'); closeModal('measurementFormModal'); });
