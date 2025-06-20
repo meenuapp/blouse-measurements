@@ -385,13 +385,11 @@
         document.getElementById('paymentForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const amount = parseFloat(document.getElementById('paymentAmountInput').value); db.transactions.push({ id: generateId(), tailorId: selectedTailor.id, amount, createdAt: new Date().toISOString() }); saveDb(db); renderDashboard(); showNotification('Payment recorded!', 'success'); closeModal('paymentFormModal'); });
         
         document.getElementById('whatsappShareBtn').addEventListener('click', () => {
-            // --- UPDATED Condition for phone number check ---
             if (!selectedTailor.phone || String(selectedTailor.phone).trim() === "") { 
                 showNotification('Please add a phone number to this tailor first.', 'warning');
                 openTailorModal(false, selectedTailor);
                 return;
             }
-            // --- END OF UPDATED Condition ---
             const balance = document.getElementById('balanceDue').textContent;
             const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`);
             window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
@@ -434,7 +432,19 @@
             });
         };
 
-        document.getElementById('measurementList').addEventListener('click', (e) => { const card = e.target.closest('.measurement-card'); if (!card) return; const id = e.target.closest('[data-id]')?.dataset.id; const db = getDb(); const meas = db.measurements.find(m => m.id === id); if (e.target.closest('.action-btn.edit')) openMeasurementModal(false, meas); else if (e.target.closest('.action-btn.delete')) deleteMeasurement(id); else if (e.target.closest('.footer-btn.share')) shareMeasurement(meas); else if (e.target.closest('.footer-btn.save-image')) saveImage(id); else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded'); });
+        document.getElementById('measurementList').addEventListener('click', (e) => { 
+            const card = e.target.closest('.measurement-card'); 
+            if (!card) return; 
+            const id = e.target.closest('[data-id]')?.dataset.id; 
+            const db = getDb(); 
+            const meas = id ? db.measurements.find(m => m.id === id) : null; 
+
+            if (e.target.closest('.action-btn.edit') && meas) openMeasurementModal(false, meas); 
+            else if (e.target.closest('.action-btn.delete') && meas) deleteMeasurement(id); 
+            else if (e.target.closest('.footer-btn.share') && meas) shareMeasurement(meas); 
+            else if (e.target.closest('.footer-btn.save-image') && meas) saveImage(meas); 
+            else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded'); 
+        });
         const openMeasurementModal = (isNew, meas=null) => { document.getElementById('measurementForm').reset(); document.getElementById('measurementId').value = isNew ? '' : meas.id; currentCustomFields = isNew ? [] : (meas.customFields ? JSON.parse(JSON.stringify(meas.customFields)) : []); document.getElementById('measurementFormTitle').textContent = isNew ? 'Add New Measurement' : 'Edit Measurement'; if (!isNew) document.querySelectorAll('#measurementForm input[data-field]').forEach(i => i.value = toUnit(meas[i.dataset.field])); document.querySelectorAll('.unit-label').forEach(el => el.textContent = localSettings.unit); renderCustomFieldsInForm(currentCustomFields); openModal('measurementFormModal'); };
         const renderCustomFieldsInForm = (fields=[])=>{const c=document.getElementById('customFieldsFormContainer');c.innerHTML=fields.map((f,i)=>`<div class="form-group"><label class="form-label">${f.name}</label><div class="custom-field-form"><input type="number" step="any" class="form-input" data-index="${i}" value="${toUnit(f.value)}"><button type="button" class="btn btn-danger" onclick="window.removeCustomField(${i})"><i class="fas fa-trash"></i></button></div></div>`).join('');};
         document.getElementById('addCustomFieldBtn').addEventListener('click',()=>{const n=document.getElementById('customFieldNameInput');if(n.value){currentCustomFields.push({name:n.value,value:null});renderCustomFieldsInForm(currentCustomFields);n.value='';}});
@@ -442,42 +452,50 @@
         const deleteMeasurement = id => { showConfirmation('Delete Measurement?', 'This cannot be undone.', () => { let db = getDb(); db.measurements = db.measurements.filter(m => m.id !== id); saveDb(db); renderMeasurements(); showNotification('Measurement deleted.', 'success'); }); };
         const shareMeasurement=meas=>{if(!meas)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};const encodedText=encodeURIComponent(getTxt(meas));window.open(`https://wa.me/?text=${encodedText}`,'_blank');};
         
-        const saveImage=id=>{
-            const card=document.getElementById(`card-${id}`); 
+        // --- UPDATED saveImage function for filename ---
+        const saveImage = (measurementObject) => {
+            if (!measurementObject || !measurementObject.id) {
+                showNotification('Invalid measurement data for saving image.', 'error');
+                return;
+            }
+            const id = measurementObject.id;
+            const card = document.getElementById(`card-${id}`); 
+
             if (!card) { 
                 showNotification('Could not find measurement card to save.', 'error');
                 return;
             }
 
-            // --- UPDATED FILENAME GENERATION ---
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+            const tailorName = selectedTailor ? selectedTailor.name.replace(/\s+/g, '_') : 'UnknownTailor';
+            const measNameRaw = measurementObject.measurementName || `Meas-${id}`;
+            // Sanitize the existing measurement name, which includes a date/time
+            const measNameSanitized = measNameRaw.replace(/[\/:]/g, '-').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, ''); 
             
-            const tailorNameForFile = selectedTailor ? selectedTailor.name.replace(/[^a-zA-Z0-9_.-]/g, '_') : 'UnknownTailor';
-            const filename = `${tailorNameForFile}_Measurement_${dateStr}_${timeStr}.png`;
-            // --- END OF UPDATED FILENAME GENERATION ---
+            // Construct filename using only tailor name and the (already date/time stamped) sanitized measurement name
+            const newFilename = `${tailorName}_${measNameSanitized}.png`;
 
-            const wasExp=card.classList.contains('expanded');
-            if(!wasExp)card.classList.add('expanded');
-            setTimeout(()=>{
-                html2canvas(card,{
+            const wasExp = card.classList.contains('expanded');
+            if (!wasExp) card.classList.add('expanded');
+            
+            setTimeout(() => {
+                html2canvas(card, {
                     backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--light-color').trim() || '#FFF8F3', 
                     logging: true, 
                     useCORS: true 
-                }).then(canvas=>{
-                    const link=document.createElement('a');
-                    link.download = filename; // Use the new filename
-                    link.href=canvas.toDataURL('image/png');
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = newFilename; 
+                    link.href = canvas.toDataURL('image/png');
                     link.click();
-                    if(!wasExp)card.classList.remove('expanded');
+                    if (!wasExp) card.classList.remove('expanded');
                     showNotification('Image saved!', 'success');
                 }).catch(err => {
                     console.error("Error saving image: ", err);
                     showNotification('Could not save image. See console for details.', 'error');
                 });
-            },200)
+            }, 200);
         };
+        // --- END OF UPDATED saveImage ---
 
         document.getElementById('measurementSearchInput').addEventListener('input', renderMeasurements);
         document.getElementById('addMeasurementBtn').addEventListener('click', () => openMeasurementModal(true));
