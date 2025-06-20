@@ -112,7 +112,7 @@
         .toast-notification.error { background-color: var(--danger-color); }
         .toast-notification.warning { background-color: var(--warning-color); color: var(--dark-color); }
 
-        /* Styles for improved search box */
+        /* Added CSS for improved search box */
         .search-container {
             position: relative;
             margin-bottom: 20px;
@@ -126,7 +126,7 @@
             color: var(--text-muted);
         }
         
-        .search-container .search-input { /* Changed from .form-input to .search-input for specificity */
+        .search-container .search-input { /* This class already existed, so this enhances it */
             width: 100%;
             padding: 12px 20px 12px 45px; /* Adjusted padding for icon */
             border-radius: 50px;
@@ -181,7 +181,7 @@
             </div>
             <div id="measurementsTab" class="tab-content">
                 <div class="section-header"><h3 class="section-title">Measurements</h3><button class="btn btn-success" id="addMeasurementBtn"><i class="fas fa-plus"></i> Add Measurement</button></div>
-                <!-- UPDATED SEARCH BOX HTML HERE -->
+                <!-- HTML for search box is already structured to work with new CSS -->
                 <div class="search-container">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="search-input" id="measurementSearchInput" placeholder="Search measurements...">
@@ -204,7 +204,7 @@
     // --- APP LOGIC ---
     document.addEventListener('DOMContentLoaded', () => {
         const firebaseConfig = { apiKey: "AIzaSyDQQ652gKdhLSLWZIIuZLjxiUCgOdKD4v0", authDomain: "my-embroidery-app.firebaseapp.com", projectId: "my-embroidery-app" };
-        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8'; // Ensure this is restricted in Google Cloud Console
+        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8';
         const CLIENT_ID = '62991104743-7sppptie4s6rf98tu1tkn2057dtq7ht7.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
@@ -390,36 +390,54 @@
         const deleteMeasurement = id => { showConfirmation('Delete Measurement?', 'This cannot be undone.', () => { let db = getDb(); db.measurements = db.measurements.filter(m => m.id !== id); saveDb(db); renderMeasurements(); showNotification('Measurement deleted.', 'success'); }); };
         const shareMeasurement=meas=>{if(!meas)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};const encodedText=encodeURIComponent(getTxt(meas));window.open(`https://wa.me/?text=${encodedText}`,'_blank');};
         
-        // UPDATED saveImage FUNCTION
+        // --- Updated saveImage function ---
         const saveImage = id => {
-            const card = document.querySelector(`.measurement-card [data-id="${id}"]`).closest('.measurement-card');
-            if (!card) { // Defensive check
-                console.error('Could not find measurement card for ID:', id);
+            const buttonElement = document.querySelector(`.measurement-card .footer-btn.save-image[data-id="${id}"]`);
+            if (!buttonElement) {
+                console.error('Save image button not found for id:', id);
                 showNotification('Could not find measurement card to save.', 'error');
                 return;
             }
+            const card = buttonElement.closest('.measurement-card');
+            if (!card) {
+                console.error('Measurement card not found for id:', id);
+                showNotification('Could not find measurement card to save.', 'error');
+                return;
+            }
+
             const wasExp = card.classList.contains('expanded');
             if (!wasExp) card.classList.add('expanded');
             
+            // Temporarily hide action buttons on the card for a cleaner image
+            const cardActionButtons = card.querySelector('.card-actions');
+            const footerActionButtons = card.querySelector('.card-footer-actions');
+            if (cardActionButtons) cardActionButtons.style.display = 'none';
+            if (footerActionButtons) footerActionButtons.style.display = 'none';
+
             setTimeout(() => {
                 html2canvas(card, {
-                    backgroundColor: 'var(--light-color)',
+                    backgroundColor: 'var(--light-color)', // Uses CSS variable
                     scale: 2, // Higher quality
-                    logging: false,
-                    useCORS: true 
+                    logging: false, // Disables html2canvas logging in console
+                    useCORS: true // For cross-origin images, if any
                 }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = `measurements_${id}.png`;
-                    link.href = canvas.toDataURL('image/png');
+                    link.download = `measurements_${selectedTailor ? selectedTailor.name.replace(/\s+/g, '_') : 'tailor'}_${id}.png`;
+                    link.href = canvas.toDataURL('image/png'); // Specify PNG format
                     link.click();
                     if (!wasExp) card.classList.remove('expanded');
                 }).catch(err => {
                     console.error('Error saving image:', err);
                     showNotification('Could not save image.', 'error');
-                    if (!wasExp) card.classList.remove('expanded'); // Ensure cleanup on error too
+                    if (!wasExp) card.classList.remove('expanded');
+                }).finally(() => {
+                    // Restore button visibility
+                    if (cardActionButtons) cardActionButtons.style.display = 'flex'; // or original display value
+                    if (footerActionButtons) footerActionButtons.style.display = 'flex'; // or original display value
                 });
-            }, 200); // Small delay to ensure styles are applied if card was just expanded
+            }, 300); // Increased timeout slightly to ensure content (like expanded state) is rendered
         };
+        // --- End of updated saveImage function ---
 
         document.getElementById('measurementSearchInput').addEventListener('input', renderMeasurements);
         document.getElementById('addMeasurementBtn').addEventListener('click', () => openMeasurementModal(true));
