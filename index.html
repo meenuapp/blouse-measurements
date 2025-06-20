@@ -142,7 +142,7 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(255, 140, 105, 0.2); 
         }
-        #tailorSearchInput.form-input {
+        #tailorSearchInput.form-input { 
              padding-left: 20px; 
         }
         #tailorSearchInput.form-input:focus {
@@ -208,7 +208,7 @@
     // --- APP LOGIC ---
     document.addEventListener('DOMContentLoaded', () => {
         const firebaseConfig = { apiKey: "AIzaSyDQQ652gKdhLSLWZIIuZLjxiUCgOdKD4v0", authDomain: "my-embroidery-app.firebaseapp.com", projectId: "my-embroidery-app" };
-        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8'; // Ensure this is restricted in Google Cloud Console
+        const API_KEY = 'AIzaSyB4rn95QeFYXcUFl_UUSUMTAhyPurDovS8';
         const CLIENT_ID = '62991104743-7sppptie4s6rf98tu1tkn2057dtq7ht7.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
@@ -296,7 +296,7 @@
                 else { const fileMetadata = { name: 'embroidery_suite_backup.json', parents: [folderId] }; response = await gapi.client.drive.files.create({ resource: fileMetadata, fields: 'id' }); driveFileId = response.result.id; showNotification('New Drive backup file created.', 'success'); }
                 updateDriveUi(true);
                 if (!isReconnect) saveDataToDrive();
-            } catch (err) { console.error("Error with Google Drive file:", err); showNotification('Error connecting to Google Drive. Check console.', 'error'); }
+            } catch (err) { console.error(err); showNotification('Error connecting to Google Drive.', 'error'); }
         }
 
         async function saveDataToDrive(retryCount = 0) {
@@ -311,24 +311,24 @@
                 localStorage.setItem(`lastDriveSync_${currentUser.uid}`, new Date().toISOString());
                 updateDriveUi(true);
             } catch(err) {
-                if (err.status === 401 && retryCount === 0) { 
+                if (err.status === 401 && retryCount === 0) { // First time token expired
                     localStorage.removeItem(`googleDriveToken_${currentUser.uid}`);
                     updateDriveUi(false);
                     showNotification('Session expired. Please reconnect Google Drive', 'error');
-                } else if (err.status === 412) { 
+                } else if (err.status === 412) { // Version conflict
                     showNotification('Cloud conflict. Saving local backup.', 'warning');
                     const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
                     const blob = new Blob([data], { type: 'application/json' });
                     const link = document.createElement('a');
                     link.download = 'embroidery_suite_conflict_backup.json';
                     link.href = URL.createObjectURL(blob);
-                    link.click(); URL.revokeObjectURL(link.href);
-                } else if (retryCount < 3) { 
+                    link.click();
+                } else if (retryCount < 3) { // Other retryable errors
                     const delay = Math.pow(2, retryCount) * 1000;
                     setTimeout(() => saveDataToDrive(retryCount + 1), delay);
                 } else {
-                    console.error("Drive save error after retries:", err);
-                    driveStatusEl.innerHTML = `Status: Sync failed. Check console.`;
+                    console.error("Drive save error", err);
+                    driveStatusEl.innerHTML = `Status: Sync failed`;
                 }
             }
         }
@@ -340,7 +340,7 @@
                 const backupData = JSON.parse(response.body);
                 showConfirmation('Restore from Cloud?', 'A backup was found in your Google Drive. Would you like to restore it? This will merge with your current local data.', 
                     () => { mergeData(backupData); showNotification('Restored from Google Drive.', 'success'); });
-            } catch (err) { console.error("Error restoring from Drive:", err); showNotification('Could not fetch from Drive. Check console.', 'error'); }
+            } catch (err) { console.error(err); showNotification('Could not fetch from Drive.', 'error'); }
         }
 
         const updateDriveUi = (isConnected) => {
@@ -358,51 +358,11 @@
         
         const loadAndRenderTailors = () => { const db = getDb(); populateTailorDropdown(db.tailors.sort((a,b) => a.name.localeCompare(b.name))); };
         const populateTailorDropdown = (tailors) => { tailorDropdownContent.innerHTML = ''; if(tailors.length === 0){ tailorDropdownContent.innerHTML = `<div class="dropdown-item">No tailors found. Add one!</div>`; return; } tailors.forEach(t => { tailorDropdownContent.innerHTML += `<div class="dropdown-item" data-id="${t.id}"><span class="tailor-name-span">${t.name}</span><div class="card-actions"><button class="action-btn call" title="Call"><i class="fas fa-phone"></i></button><button class="action-btn edit" title="Edit"><i class="fas fa-edit"></i></button><button class="action-btn delete" title="Delete"><i class="fas fa-trash"></i></button></div></div>`; }); };
-        tailorDropdownContent.addEventListener('click', (e) => { const item = e.target.closest('.dropdown-item'); if(!item) return; const id = item.dataset.id; const db = getDb(); const tailor = db.tailors.find(t => t.id === id); if (e.target.closest('.action-btn.edit')) { e.stopPropagation(); openTailorModal(false, tailor); } else if (e.target.closest('.action-btn.delete')) { e.stopPropagation(); deleteTailor(id); } else if (e.target.closest('.action-btn.call')) { e.stopPropagation(); if (tailor && tailor.phone) window.location.href = `tel:${tailor.phone}`; else { showNotification('Please add phone number to this tailor first', 'warning'); if (tailor) openTailorModal(false, tailor); } } else if (tailor) { selectTailor(tailor); } });
+        tailorDropdownContent.addEventListener('click', (e) => { const item = e.target.closest('.dropdown-item'); if(!item) return; const id = item.dataset.id; const db = getDb(); const tailor = db.tailors.find(t => t.id === id); if (e.target.closest('.action-btn.edit')) { e.stopPropagation(); openTailorModal(false, tailor); } else if (e.target.closest('.action-btn.delete')) { e.stopPropagation(); deleteTailor(id); } else if (e.target.closest('.action-btn.call')) { e.stopPropagation(); if (tailor.phone) window.location.href = `tel:${tailor.phone}`; else { showNotification('Please add phone number to this tailor first', 'warning'); openTailorModal(false, tailor); } } else { selectTailor(tailor); } });
         const selectTailor = (tailor) => { selectedTailor = tailor; tailorSearchInput.value = tailor.name; tailorDropdownContent.classList.remove('show'); tailorDashboard.style.display = 'block'; renderDashboard(); };
         document.getElementById('addTailorBtn').addEventListener('click', () => openTailorModal(true));
         const openTailorModal = (isNew, tailor = null) => { const form = document.getElementById('tailorForm'); form.reset(); form.tailorId.value = isNew ? '' : tailor.id; form.tailorNameInput.value = isNew ? '' : tailor.name; form.tailorPhoneInput.value = isNew ? '' : tailor.phone; document.getElementById('tailorFormTitle').textContent = isNew ? 'Add New Tailor' : 'Edit Tailor'; openModal('tailorFormModal'); };
-        
-        // --- UPDATED tailorForm submit listener ---
-        document.getElementById('tailorForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const db = getDb();
-            const id = document.getElementById('tailorId').value;
-            const name = document.getElementById('tailorNameInput').value;
-            const phone = document.getElementById('tailorPhoneInput').value;
-            let wasSelectedTailorEdited = false;
-            let newTailorData = null;
-
-            if(id){ // Editing existing tailor
-                const index = db.tailors.findIndex(t => t.id === id);
-                if(index > -1) {
-                    db.tailors[index] = {...db.tailors[index], name, phone};
-                    if (selectedTailor && selectedTailor.id === id) {
-                        wasSelectedTailorEdited = true;
-                    }
-                }
-            } else { // Adding new tailor
-                const newTailorId = generateId();
-                newTailorData = {id: newTailorId, name, phone};
-                db.tailors.push(newTailorData);
-            }
-            saveDb(db);
-            loadAndRenderTailors(); 
-            showNotification(`Tailor ${id ? 'updated' : 'added'}!`, 'success');
-            closeModal('tailorFormModal');
-
-            if (wasSelectedTailorEdited) {
-                const updatedTailorFromDb = db.tailors.find(t => t.id === id); 
-                if (updatedTailorFromDb) {
-                    selectTailor(updatedTailorFromDb); 
-                }
-            } else if (newTailorData && !selectedTailor && db.tailors.length === 1) { 
-                // Optionally auto-select if it's the first tailor added and none were selected.
-                // selectTailor(newTailorData); 
-            }
-        });
-        // --- END OF UPDATED tailorForm submit listener ---
-
+        document.getElementById('tailorForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const id = document.getElementById('tailorId').value, name = document.getElementById('tailorNameInput').value, phone = document.getElementById('tailorPhoneInput').value; if(id){ const index = db.tailors.findIndex(t => t.id === id); if(index > -1) {db.tailors[index] = {...db.tailors[index], name, phone}; if(selectedTailor && selectedTailor.id === id) { selectedTailor = {...db.tailors[index]}; } } } else { db.tailors.push({id: generateId(), name, phone}); } saveDb(db); loadAndRenderTailors(); if(selectedTailor){ renderDashboard(); } showNotification(`Tailor ${id ? 'updated' : 'added'}!`, 'success'); closeModal('tailorFormModal'); });
         const deleteTailor = (id) => { showConfirmation('Delete Tailor?', 'This will delete ALL their orders, measurements, and payments. This is permanent.', () => { let db = getDb(); db.tailors = db.tailors.filter(t => t.id !== id); db.orders = db.orders.filter(m => m.tailorId !== id); db.measurements = db.measurements.filter(m => m.tailorId !== id); db.transactions = db.transactions.filter(m => m.tailorId !== id); saveDb(db); if(selectedTailor && selectedTailor.id === id) { tailorDashboard.style.display = 'none'; selectedTailor = null; tailorSearchInput.value = ''; } loadAndRenderTailors(); showNotification('Tailor and all data deleted.', 'success'); }); };
         tailorSearchInput.addEventListener('input', () => { const filter = tailorSearchInput.value.toLowerCase(); tailorDropdownContent.querySelectorAll('.dropdown-item').forEach(item => item.style.display = (item.querySelector('.tailor-name-span').textContent || '').toLowerCase().includes(filter) ? "flex" : "none"); });
         tailorSearchInput.addEventListener('focus', () => tailorDropdownContent.classList.add('show'));
@@ -423,7 +383,19 @@
         const renderPayments = () => { const db = getDb(); const payments = db.transactions.filter(t => t.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); const listEl = document.getElementById('paymentHistoryList'); listEl.innerHTML = ''; if(payments.length === 0) { listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No payments recorded yet.</p></div>`; return; } payments.forEach(p => listEl.innerHTML += `<div class="order-card" style="border-left-color: var(--info-color);"><div class="measurement-grid" style="padding: 20px;"><div class="measurement-item"><span class="order-label">Amount Paid</span><span class="order-value">₹${p.amount.toFixed(2)}</span></div><div class="measurement-item"><span class="order-label">Date</span><span class="order-value">${new Date(p.createdAt).toLocaleDateString()}</span></div></div></div>`); };
         document.getElementById('recordPaymentBtn').addEventListener('click', () => { document.getElementById('paymentForm').reset(); openModal('paymentFormModal'); });
         document.getElementById('paymentForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const amount = parseFloat(document.getElementById('paymentAmountInput').value); db.transactions.push({ id: generateId(), tailorId: selectedTailor.id, amount, createdAt: new Date().toISOString() }); saveDb(db); renderDashboard(); showNotification('Payment recorded!', 'success'); closeModal('paymentFormModal'); });
-        document.getElementById('whatsappShareBtn').addEventListener('click', () => { if (!selectedTailor || !selectedTailor.phone) { showNotification('Please add a phone number to this tailor first.', 'warning'); if(selectedTailor) openTailorModal(false, selectedTailor); return; } const balance = document.getElementById('balanceDue').textContent; const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`); window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank'); });
+        
+        // --- UPDATED whatsappShareBtn event listener condition ---
+        document.getElementById('whatsappShareBtn').addEventListener('click', () => {
+            if (!selectedTailor.phone || String(selectedTailor.phone).trim() === "") { // UPDATED Condition
+                showNotification('Please add a phone number to this tailor first.', 'warning');
+                openTailorModal(false, selectedTailor);
+                return;
+            }
+            const balance = document.getElementById('balanceDue').textContent;
+            const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`);
+            window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+        });
+        // --- END OF UPDATED whatsappShareBtn ---
         
         const renderMeasurements = () => {
             const db = getDb();
@@ -509,7 +481,7 @@
         const showRestoreOptions = (backupData) => {
             const modal = document.getElementById('restoreOptionsModal'), replaceBtn = document.getElementById('restoreReplaceBtn'), mergeBtn = document.getElementById('restoreMergeBtn'), cancelBtn = document.getElementById('restoreCancelBtn');
             const cleanup = () => { replaceBtn.removeEventListener('click', handleReplace); mergeBtn.removeEventListener('click', handleMerge); cancelBtn.removeEventListener('click', cleanup); closeModal('restoreOptionsModal'); };
-            const handleReplace = () => { cleanup(); showConfirmation('Are you sure?', 'This will DELETE all your current data before restoring.', () => { saveDb(backupData); loadAndRenderTailors(); tailorDashboard.style.display = 'none'; selectedTailor = null; tailorSearchInput.value = ''; showNotification('Data replaced!', 'success'); }); };
+            const handleReplace = () => { cleanup(); showConfirmation('Are you sure?', 'This will DELETE all your current data before restoring.', () => { saveDb(backupData); loadAndRenderTailors(); tailorDashboard.style.display = 'none'; showNotification('Data replaced!', 'success'); }); };
             const handleMerge = () => { cleanup(); mergeData(backupData); showNotification('Data merged!', 'success'); };
             openModal('restoreOptionsModal'); replaceBtn.addEventListener('click', handleReplace); mergeBtn.addEventListener('click', handleMerge); cancelBtn.addEventListener('click', cleanup);
         };
