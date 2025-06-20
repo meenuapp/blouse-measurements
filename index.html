@@ -112,7 +112,6 @@
         .toast-notification.error { background-color: var(--danger-color); }
         .toast-notification.warning { background-color: var(--warning-color); color: var(--dark-color); }
 
-        /* Added CSS for improved search box */
         .search-container {
             position: relative;
             margin-bottom: 20px;
@@ -126,9 +125,9 @@
             color: var(--text-muted);
         }
         
-        .search-container .search-input { /* This class already existed, so this enhances it */
+        .search-container .search-input {
             width: 100%;
-            padding: 12px 20px 12px 45px; /* Adjusted padding for icon */
+            padding: 12px 20px 12px 45px;
             border-radius: 50px;
             border: 1px solid #ddd;
             font-size: 1rem;
@@ -181,7 +180,6 @@
             </div>
             <div id="measurementsTab" class="tab-content">
                 <div class="section-header"><h3 class="section-title">Measurements</h3><button class="btn btn-success" id="addMeasurementBtn"><i class="fas fa-plus"></i> Add Measurement</button></div>
-                <!-- HTML for search box is already structured to work with new CSS -->
                 <div class="search-container">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="search-input" id="measurementSearchInput" placeholder="Search measurements...">
@@ -292,13 +290,17 @@
                 else { const fileMetadata = { name: 'embroidery_suite_backup.json', parents: [folderId] }; response = await gapi.client.drive.files.create({ resource: fileMetadata, fields: 'id' }); driveFileId = response.result.id; showNotification('New Drive backup file created.', 'success'); }
                 updateDriveUi(true);
                 if (!isReconnect) saveDataToDrive();
-            } catch (err) { console.error(err); showNotification('Error connecting to Google Drive.', 'error'); }
+            } catch (err) { console.error("Error finding/creating Drive file:", err); showNotification('Error connecting to Google Drive.', 'error'); }
         }
 
         async function saveDataToDrive(retryCount = 0) {
-            if (!driveFileId || !gapi.client.getToken()) return;
+            if (!driveFileId || !gapi.client.getToken() || !currentUser) return; // Added !currentUser check
             try {
                 const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
+                if (!data) { // Don't try to save if there's no data
+                    console.log("No data to save to Drive.");
+                    return;
+                }
                 await gapi.client.request({
                     path: `/upload/drive/v3/files/${driveFileId}?uploadType=media`,
                     method: 'PATCH',
@@ -307,11 +309,11 @@
                 localStorage.setItem(`lastDriveSync_${currentUser.uid}`, new Date().toISOString());
                 updateDriveUi(true);
             } catch(err) {
-                if (err.status === 401 && retryCount === 0) { // First time token expired
+                if (err.status === 401 && retryCount === 0) {
                     localStorage.removeItem(`googleDriveToken_${currentUser.uid}`);
                     updateDriveUi(false);
                     showNotification('Session expired. Please reconnect Google Drive', 'error');
-                } else if (err.status === 412) { // Version conflict
+                } else if (err.status === 412) {
                     showNotification('Cloud conflict. Saving local backup.', 'warning');
                     const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
                     const blob = new Blob([data], { type: 'application/json' });
@@ -319,31 +321,31 @@
                     link.download = 'embroidery_suite_conflict_backup.json';
                     link.href = URL.createObjectURL(blob);
                     link.click();
-                } else if (retryCount < 3) { // Other retryable errors
+                } else if (retryCount < 3) {
                     const delay = Math.pow(2, retryCount) * 1000;
                     setTimeout(() => saveDataToDrive(retryCount + 1), delay);
                 } else {
-                    console.error("Drive save error", err);
+                    console.error("Drive save error (final attempt):", err);
                     driveStatusEl.innerHTML = `Status: Sync failed`;
                 }
             }
         }
 
         async function restoreFromDrive() {
-            if (!driveFileId) return;
+            if (!driveFileId || !gapi.client.getToken()) return;
             try {
                 const response = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
                 const backupData = JSON.parse(response.body);
                 showConfirmation('Restore from Cloud?', 'A backup was found in your Google Drive. Would you like to restore it? This will merge with your current local data.', 
                     () => { mergeData(backupData); showNotification('Restored from Google Drive.', 'success'); });
-            } catch (err) { console.error(err); showNotification('Could not fetch from Drive.', 'error'); }
+            } catch (err) { console.error("Error restoring from Drive:", err); showNotification('Could not fetch from Drive.', 'error'); }
         }
 
         const updateDriveUi = (isConnected) => {
             if(isConnected) {
                 connectDriveBtn.style.display = 'none';
                 disconnectDriveBtn.style.display = 'block';
-                const lastSync = localStorage.getItem(`lastDriveSync_${currentUser.uid}`);
+                const lastSync = currentUser ? localStorage.getItem(`lastDriveSync_${currentUser.uid}`) : null;
                 driveStatusEl.innerHTML = lastSync ? `Status: Connected (Last sync: ${new Date(lastSync).toLocaleTimeString()})` : `Status: Connected`;
             } else {
                 connectDriveBtn.style.display = 'block';
@@ -392,50 +394,76 @@
         
         // --- Updated saveImage function ---
         const saveImage = id => {
-            const buttonElement = document.querySelector(`.measurement-card .footer-btn.save-image[data-id="${id}"]`);
+            console.log('[SAVE IMAGE] Called with id:', id);
+
+            const buttonElement = document.querySelector(`.footer-btn.save-image[data-id="${id}"]`);
             if (!buttonElement) {
-                console.error('Save image button not found for id:', id);
-                showNotification('Could not find measurement card to save.', 'error');
+                console.error('[SAVE IMAGE] Button element not found for id:', id);
+                showNotification('Could not find measurement card component (button).', 'error');
                 return;
             }
+            console.log('[SAVE IMAGE] Button element found:', buttonElement);
+
             const card = buttonElement.closest('.measurement-card');
             if (!card) {
-                console.error('Measurement card not found for id:', id);
-                showNotification('Could not find measurement card to save.', 'error');
+                console.error('[SAVE IMAGE] Measurement card not found for id:', id, 'from button:', buttonElement);
+                showNotification('Could not find measurement card component (card).', 'error');
                 return;
             }
+            console.log('[SAVE IMAGE] Card element found:', card);
 
             const wasExp = card.classList.contains('expanded');
-            if (!wasExp) card.classList.add('expanded');
+            console.log('[SAVE IMAGE] Card was expanded:', wasExp);
+            if (!wasExp) {
+                card.classList.add('expanded');
+                console.log('[SAVE IMAGE] Card expanded for capture.');
+            }
             
-            // Temporarily hide action buttons on the card for a cleaner image
             const cardActionButtons = card.querySelector('.card-actions');
             const footerActionButtons = card.querySelector('.card-footer-actions');
+            const originalCardActionsDisplay = cardActionButtons ? cardActionButtons.style.display : '';
+            const originalFooterActionsDisplay = footerActionButtons ? footerActionButtons.style.display : '';
+
             if (cardActionButtons) cardActionButtons.style.display = 'none';
             if (footerActionButtons) footerActionButtons.style.display = 'none';
+            console.log('[SAVE IMAGE] Action buttons hidden for capture.');
 
-            setTimeout(() => {
-                html2canvas(card, {
-                    backgroundColor: 'var(--light-color)', // Uses CSS variable
-                    scale: 2, // Higher quality
-                    logging: false, // Disables html2canvas logging in console
-                    useCORS: true // For cross-origin images, if any
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `measurements_${selectedTailor ? selectedTailor.name.replace(/\s+/g, '_') : 'tailor'}_${id}.png`;
-                    link.href = canvas.toDataURL('image/png'); // Specify PNG format
-                    link.click();
-                    if (!wasExp) card.classList.remove('expanded');
-                }).catch(err => {
-                    console.error('Error saving image:', err);
-                    showNotification('Could not save image.', 'error');
-                    if (!wasExp) card.classList.remove('expanded');
-                }).finally(() => {
-                    // Restore button visibility
-                    if (cardActionButtons) cardActionButtons.style.display = 'flex'; // or original display value
-                    if (footerActionButtons) footerActionButtons.style.display = 'flex'; // or original display value
-                });
-            }, 300); // Increased timeout slightly to ensure content (like expanded state) is rendered
+            // Use requestAnimationFrame to ensure DOM updates are processed before capture
+            requestAnimationFrame(() => {
+                setTimeout(() => { // Additional timeout to allow rendering after styles change
+                    console.log('[SAVE IMAGE] Attempting html2canvas capture...');
+                    html2canvas(card, {
+                        backgroundColor: '#FFF8F3', // Hardcoded value of var(--light-color) for testing
+                        allowTaint: true,    // Might help with CORS issues for external resources like fonts
+                        useCORS: true,       // Essential for loading external images/fonts (like Font Awesome)
+                        scale: 2,            // Increase scale for higher quality images
+                        logging: true,       // Enable html2canvas logging for more detailed debug info in console
+                        imageTimeout: 20000,  // Increased timeout for loading external resources (e.g., Font Awesome)
+                        removeContainer: true // Option to remove the cloned container from DOM after capture
+                    }).then(canvas => {
+                        console.log('[SAVE IMAGE] html2canvas capture successful.');
+                        const link = document.createElement('a');
+                        const tailorName = selectedTailor ? selectedTailor.name.replace(/\s+/g, '_') : 'tailor';
+                        const measurementName = card.querySelector('.measurement-name')?.textContent.replace(/\s+/g, '_') || `Meas_${id}`;
+                        link.download = `measurements_${tailorName}_${measurementName}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        console.log('[SAVE IMAGE] Image download initiated:', link.download);
+                    }).catch(err => {
+                        console.error('[SAVE IMAGE] html2canvas error:', err); 
+                        showNotification('Could not save image. Check console for details.', 'error');
+                    }).finally(() => {
+                        // Restore card state and button visibility
+                        if (!wasExp && card.classList.contains('expanded')) {
+                            card.classList.remove('expanded');
+                            console.log('[SAVE IMAGE] Card collapsed back.');
+                        }
+                        if (cardActionButtons) cardActionButtons.style.display = originalCardActionsDisplay || 'flex';
+                        if (footerActionButtons) footerActionButtons.style.display = originalFooterActionsDisplay || 'flex';
+                        console.log('[SAVE IMAGE] Action buttons restored.');
+                    });
+                }, 400); // Increased timeout slightly more
+            });
         };
         // --- End of updated saveImage function ---
 
