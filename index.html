@@ -11,6 +11,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- START: PDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- END: PDF Libraries -->
 
     <style>
         :root {
@@ -40,6 +44,7 @@
         .form-group .icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
         .form-input { width: 100%; padding: 14px 20px 14px 50px; border-radius: 50px; border: 1px solid #ddd; font-size: 1rem; background: #fff; color: var(--dark-color); }
         .form-input::placeholder { color: var(--text-muted); }
+        textarea.form-input { height: auto; padding: 15px 20px; border-radius: 16px; line-height: 1.5; }
         .login-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: var(--primary-color); color: white; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(255, 140, 105, 0.4); }
         .login-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 140, 105, 0.5); }
         .google-btn { background: #fff; color: #444; border: 1px solid #ddd !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
@@ -111,7 +116,10 @@
         .toast-notification.success { background-color: var(--success-color); }
         .toast-notification.error { background-color: var(--danger-color); }
         .toast-notification.warning { background-color: var(--warning-color); color: var(--dark-color); }
-
+        .custom-field-form { display: flex; gap: 10px; align-items: center; }
+        .custom-field-form input { flex-grow: 1; margin:0; padding-left: 20px !important;}
+        .custom-field-form button { flex-shrink: 0; }
+        
         .search-container {
             position: relative; 
             margin-bottom: 20px;
@@ -179,7 +187,6 @@
             </div>
             <div class="dashboard-tabs">
                 <button class="tab-btn active" data-tab="orders">Orders</button>
-                <button class="tab-btn" data-tab="measurements">Measurements</button>
             </div>
             <div id="ordersTab" class="tab-content active">
                 <div class="section-header"><h3 class="section-title">Order History</h3><button class="btn btn-success" id="addOrderBtn"><i class="fas fa-plus"></i> Add Order</button></div>
@@ -187,20 +194,58 @@
                  <div class="section-header" style="margin-top: 30px;"><h3 class="section-title">Payment History</h3></div>
                  <div class="order-list" id="paymentHistoryList"></div>
             </div>
-            <div id="measurementsTab" class="tab-content">
-                <div class="section-header"><h3 class="section-title">Measurements</h3><button class="btn btn-success" id="addMeasurementBtn"><i class="fas fa-plus"></i> Add Measurement</button></div>
-                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="measurementSearchInput" placeholder="Search measurements..."></div>
-                <div class="measurement-list" id="measurementList"></div>
-            </div>
          </div>
     </div>
     
     <div class="modal-overlay" id="tailorFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="tailorFormTitle"></h2><button class="close-modal">×</button></div><form id="tailorForm"><input type="hidden" id="tailorId"><div class="form-group"><label class="form-label">Tailor Name</label><input type="text" class="form-input" id="tailorNameInput" required></div><div class="form-group"><label class="form-label">Phone Number</label><input type="tel" class="form-input" id="tailorPhoneInput" placeholder="Required for WhatsApp features" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Tailor</button></div></form></div></div>
-    <div class="modal-overlay" id="orderFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="orderFormTitle"></h2><button class="close-modal">×</button></div><form id="orderForm"><input type="hidden" id="orderId"><div class="form-group"><label class="form-label">Design Model</label><input type="text" class="form-input" id="designModelInput" required></div><div class="form-group"><label class="form-label">Price (₹)</label><input type="number" class="form-input" id="orderPriceInput" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Order</button></div></form></div></div>
+    <div class="modal-overlay" id="orderFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="orderFormTitle"></h2><button class="close-modal">×</button></div><form id="orderForm"><input type="hidden" id="orderId"><input type="hidden" id="measurementId"><div class="form-group"><label class="form-label">Design Model</label><input type="text" class="form-input" id="designModelInput" required></div><div class="form-group"><label class="form-label">Price (₹)</label><input type="number" class="form-input" id="orderPriceInput" required></div><hr><h4>Standard Measurements (<span class="unit-label"></span>)</h4><div class="measurement-grid"><div class="form-group"><label class="form-label">Sleeves Width</label><input type="number" step="any" class="form-input" data-field="sleevesWidth"></div><div class="form-group"><label class="form-label">Sleeves Height</label><input type="number" step="any" class="form-input" data-field="sleevesHeight"></div><div class="form-group"><label class="form-label">Back Neck Width</label><input type="number" step="any" class="form-input" data-field="backNeckWidth"></div><div class="form-group"><label class="form-label">Back Neck Height</label><input type="number" step="any" class="form-input" data-field="backNeckHeight"></div><div class="form-group"><label class="form-label">Back Full Height</label><input type="number" step="any" class="form-input" data-field="backFullHeight"></div><div class="form-group"><label class="form-label">Front Height</label><input type="number" step="any" class="form-input" data-field="frontHeight"></div></div><hr><h4>Custom Measurements</h4><div id="customFieldsFormContainer"></div><div class="custom-field-form"><input type="text" class="form-input" id="customFieldNameInput" placeholder="New field name..."><button type="button" class="btn btn-primary" id="addCustomFieldBtn">Add</button></div><div class="actions" style="margin-top:25px;"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Order</button></div></form></div></div>
     <div class="modal-overlay" id="paymentFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">Record Payment</h2><button class="close-modal">×</button></div><form id="paymentForm"><div class="form-group"><label class="form-label">Payment Amount (₹)</label><input type="number" class="form-input" id="paymentAmountInput" required></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fas fa-save"></i> Save Payment</button></div></form></div></div>
-    <div class="modal-overlay" id="measurementFormModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title" id="measurementFormTitle"></h2><button class="close-modal">×</button></div><form id="measurementForm"><input type="hidden" id="measurementId"><hr><h4>Standard Measurements (<span class="unit-label"></span>)</h4><div class="measurement-grid"><div class="form-group"><label class="form-label">Sleeves Width</label><input type="number" step="any" class="form-input" data-field="sleevesWidth"></div><div class="form-group"><label class="form-label">Sleeves Height</label><input type="number" step="any" class="form-input" data-field="sleevesHeight"></div><div class="form-group"><label class="form-label">Back Neck Width</label><input type="number" step="any" class="form-input" data-field="backNeckWidth"></div><div class="form-group"><label class="form-label">Back Neck Height</label><input type="number" step="any" class="form-input" data-field="backNeckHeight"></div><div class="form-group"><label class="form-label">Back Full Height</label><input type="number" step="any" class="form-input" data-field="backFullHeight"></div><div class="form-group"><label class="form-label">Front Height</label><input type="number" step="any" class="form-input" data-field="frontHeight"></div></div><hr><h4>Custom Measurements</h4><div id="customFieldsFormContainer"></div><div class="custom-field-form"><input type="text" class="form-input" id="customFieldNameInput" placeholder="New field name..."><button type="button" class="btn btn-primary" id="addCustomFieldBtn">Add</button></div><div class="actions" style="margin-top:25px;"><button type="submit" class="btn btn-success save-btn footer-btn"><i class="fas fa-save"></i> Save Measurement</button></div></form></div></div>
-    <div class="modal-overlay" id="settingsModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">Settings</h2><button class="close-modal">×</button></div><div style="display:grid; gap: 15px;"><div class="form-group"><h4>Measurement Unit</h4><select class="form-select form-input" id="unitSelect"><option value="cm">Centimeters (cm)</option><option value="in">Inches (in)</option></select></div><hr><h4>Manual Backup</h4><button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> Backup All My Data</button><label for="restoreFile" class="btn btn-warning" style="margin-top:10px; cursor: pointer;"><i class="fas fa-upload"></i> Restore from File</label><input type="file" id="restoreFile" style="display:none;" accept=".json"><hr><h4>Cloud Auto-Backup</h4><div id="driveStatus">Status: Not Connected</div><button class="btn btn-info" id="connectDriveBtn"><i class="fab fa-google-drive"></i> Connect to Google Drive</button><button class="btn btn-danger" id="disconnectDriveBtn" style="display: none;"><i class="fas fa-times-circle"></i> Disconnect</button></div></div></div>
+    
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <div style="display:grid; gap: 15px;">
+                <div class="form-group">
+                    <h4>Measurement Unit</h4>
+                    <select class="form-select form-input" id="unitSelect" style="padding-left: 20px;">
+                        <option value="cm">Centimeters (cm)</option>
+                        <option value="in">Inches (in)</option>
+                    </select>
+                </div>
+                <hr>
+                <h4>Export Financial Statement</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" id="statementStartDate" class="form-input" style="padding-left: 15px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">End Date</label>
+                        <input type="date" id="statementEndDate" class="form-input" style="padding-left: 15px;">
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="generatePdfBtn" style="margin-top: 10px;"><i class="fas fa-file-pdf"></i> Generate PDF Statement</button>
+                <hr>
+                <h4>Manual Backup</h4>
+                <button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> Backup All My Data</button>
+                <label for="restoreFile" class="btn btn-warning" style="margin-top:10px; cursor: pointer;"><i class="fas fa-upload"></i> Restore from File</label>
+                <input type="file" id="restoreFile" style="display:none;" accept=".json">
+                <hr>
+                <h4>Cloud Auto-Backup</h4>
+                <div id="driveStatus">Status: Not Connected</div>
+                <button class="btn btn-info" id="connectDriveBtn"><i class="fab fa-google-drive"></i> Connect to Google Drive</button>
+                <button class="btn btn-danger" id="disconnectDriveBtn" style="display: none;"><i class="fas fa-times-circle"></i> Disconnect</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="restoreOptionsModal"><div class="modal-content" style="max-width: 500px; text-align: center;"><div class="modal-header" style="justify-content: center;"><h2 class="modal-title">Restore Options</h2></div><p style="margin-bottom: 25px;">How would you like to restore the data?</p><div style="display: grid; gap: 15px;"><div><button class="btn btn-danger" id="restoreReplaceBtn" style="width: 100%;"><i class="fas fa-exclamation-triangle"></i> Replace All Data</button><small style="display: block; margin-top: 5px; color: var(--text-muted);">Deletes all of your current data first.</small></div><div><button class="btn btn-success" id="restoreMergeBtn" style="width: 100%;"><i class="fas fa-sync-alt"></i> Merge with Existing Data</button><small style="display: block; margin-top: 5px; color: var(--text-muted);">Updates existing items and adds new ones.</small></div></div><div style="margin-top: 25px;"><button class="btn btn-secondary" id="restoreCancelBtn">Cancel</button></div></div></div>
+    
+    <div class="modal-overlay" id="whatsappMessageModal"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">Customize WhatsApp Message</h2><button class="close-modal">×</button></div><form id="whatsappMessageForm"><div class="form-group"><label class="form-label">Message to send to <strong id="whatsappRecipientName"></strong>:</label><textarea id="whatsappMessageText" class="form-input" rows="7"></textarea></div><div class="actions"><button type="submit" class="btn btn-success footer-btn"><i class="fab fa-whatsapp"></i> Send Message</button></div></form></div></div>
+    
     <div class="modal-overlay" id="confirmationModal"><div class="modal-content" style="max-width: 400px; text-align: center;"><h2 class="modal-title" id="confirmationTitle" style="justify-content: center;">Are you sure?</h2><p id="confirmationMessage"></p><div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;"><button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Confirm</button></div></div></div>
     <div id="notification-container"></div>
     
@@ -311,11 +356,11 @@
                 localStorage.setItem(`lastDriveSync_${currentUser.uid}`, new Date().toISOString());
                 updateDriveUi(true);
             } catch(err) {
-                if (err.status === 401 && retryCount === 0) { // First time token expired
+                if (err.status === 401 && retryCount === 0) {
                     localStorage.removeItem(`googleDriveToken_${currentUser.uid}`);
                     updateDriveUi(false);
                     showNotification('Session expired. Please reconnect Google Drive', 'error');
-                } else if (err.status === 412) { // Version conflict
+                } else if (err.status === 412) {
                     showNotification('Cloud conflict. Saving local backup.', 'warning');
                     const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`);
                     const blob = new Blob([data], { type: 'application/json' });
@@ -323,7 +368,7 @@
                     link.download = 'embroidery_suite_conflict_backup.json';
                     link.href = URL.createObjectURL(blob);
                     link.click();
-                } else if (retryCount < 3) { // Other retryable errors
+                } else if (retryCount < 3) {
                     const delay = Math.pow(2, retryCount) * 1000;
                     setTimeout(() => saveDataToDrive(retryCount + 1), delay);
                 } else {
@@ -368,16 +413,166 @@
         tailorSearchInput.addEventListener('focus', () => tailorDropdownContent.classList.add('show'));
         document.addEventListener('click', (e) => { if (!e.target.closest('.searchable-dropdown')) tailorDropdownContent.classList.remove('show'); });
 
-        const renderDashboard = () => { if (!selectedTailor) return; document.getElementById('dashboardTailorName').textContent = selectedTailor.name; const db = getDb(); const completedOrders = db.orders.filter(o => o.tailorId === selectedTailor.id && o.status === 'Completed'); const totalBilled = completedOrders.reduce((sum, o) => sum + o.price, 0); const totalPaid = db.transactions.filter(t => t.tailorId === selectedTailor.id).reduce((sum, t) => sum + t.amount, 0); const balanceDue = totalBilled - totalPaid; document.getElementById('totalBilled').textContent = `₹${totalBilled.toFixed(2)}`; document.getElementById('totalPaid').textContent = `₹${totalPaid.toFixed(2)}`; document.getElementById('balanceDue').textContent = `₹${balanceDue.toFixed(2)}`; renderOrders(); renderMeasurements(); renderPayments(); switchTab('orders'); };
+        const renderDashboard = () => { if (!selectedTailor) return; document.getElementById('dashboardTailorName').textContent = selectedTailor.name; const db = getDb(); const completedOrders = db.orders.filter(o => o.tailorId === selectedTailor.id && o.status === 'Completed'); const totalBilled = completedOrders.reduce((sum, o) => sum + o.price, 0); const totalPaid = db.transactions.filter(t => t.tailorId === selectedTailor.id).reduce((sum, t) => sum + t.amount, 0); const balanceDue = totalBilled - totalPaid; document.getElementById('totalBilled').textContent = `₹${totalBilled.toFixed(2)}`; document.getElementById('totalPaid').textContent = `₹${totalPaid.toFixed(2)}`; document.getElementById('balanceDue').textContent = `₹${balanceDue.toFixed(2)}`; renderOrders(); renderPayments(); switchTab('orders'); };
         const switchTab = (tabName) => { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById(`${tabName}Tab`).classList.add('active'); document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active'); };
         document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
         
-        const renderOrders = () => { const db = getDb(); const orders = db.orders.filter(o => o.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); const listEl = document.getElementById('orderList'); listEl.innerHTML = ''; if(orders.length === 0) { listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No orders yet for this tailor.</p></div>`; return; } orders.forEach(o => listEl.innerHTML += `<div class="order-card ${o.status}"><div class="order-header" data-id="${o.id}"><h3 class="order-title">${o.designModel}</h3><div class="card-actions">${o.status === 'Pending' ? `<button class="action-btn complete" title="Mark Completed"><i class="fas fa-check"></i></button>` : ''}<button class="action-btn edit" title="Edit"><i class="fas fa-edit"></i></button><button class="action-btn delete" title="Delete"><i class="fas fa-trash"></i></button></div></div><div class="measurement-grid" style="padding: 0 20px 20px 20px;"><div class="measurement-item"><span class="order-label">Price</span><span class="order-value">₹${o.price.toFixed(2)}</span></div><div class="measurement-item"><span class="order-label">Status</span><span class="order-value">${o.status}</span></div></div></div>`); };
+        const renderOrders = () => {
+            const db = getDb();
+            const orders = db.orders.filter(o => o.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+            const listEl = document.getElementById('orderList');
+            listEl.innerHTML = '';
+            if (orders.length === 0) {
+                listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No orders yet for this tailor.</p></div>`;
+                return;
+            }
+            orders.forEach(o => {
+                const measurement = db.measurements.find(m => m.id === o.measurementId);
+                const measurementDetailsHTML = measurement ? `
+                    <div class="measurement-details expanded" style="max-height: 100%; padding: 0 20px 20px 20px; border-top: 1px solid #eee;">
+                        <div id="capture-${o.id}" style="padding: 15px; border-radius: 12px;">
+                            <h4 style="text-align:center; margin-bottom: 15px; color: var(--dark-color);">${o.designModel} - Measurements</h4>
+                            <div class="measurement-grid">
+                                ${[{l:'Sleeves Width',v:measurement.sleevesWidth},{l:'Sleeves Height',v:measurement.sleevesHeight},{l:'Back Neck Width',v:measurement.backNeckWidth},{l:'Back Neck Height',v:measurement.backNeckHeight},{l:'Back Full Height',v:measurement.backFullHeight},{l:'Front Height',v:measurement.frontHeight}].map(f=>`<div class="measurement-item"><span class="measurement-label">${f.l}</span><span class="measurement-value">${fmt(f.v)}</span></div>`).join('')}
+                                ${(measurement.customFields||[]).map(f=>`<div class="measurement-item"><span class="measurement-label">${f.name}</span><span class="measurement-value">${fmt(f.value)}</span></div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="card-footer-actions">
+                            <button class="btn btn-success footer-btn share"><i class="fab fa-whatsapp"></i> Share</button>
+                            <button class="btn btn-warning footer-btn save-image"><i class="fas fa-camera"></i> Save Image</button>
+                        </div>
+                    </div>` : '';
+
+                listEl.innerHTML += `
+                    <div class="order-card ${o.status}" id="card-${o.id}" data-id="${o.id}">
+                        <div class="order-header">
+                            <h3 class="order-title">${o.designModel}</h3>
+                            <div class="card-actions">
+                                ${o.status === 'Pending' ? `<button class="action-btn complete" title="Mark Completed"><i class="fas fa-check"></i></button>` : ''}
+                                <button class="action-btn edit" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn delete" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="measurement-grid" style="padding: 0 20px 20px 20px;">
+                            <div class="measurement-item"><span class="order-label">Price</span><span class="order-value">₹${o.price.toFixed(2)}</span></div>
+                            <div class="measurement-item"><span class="order-label">Status</span><span class="order-value">${o.status}</span></div>
+                        </div>
+                        ${measurementDetailsHTML}
+                    </div>`;
+            });
+        };
+
+        const saveImage = (orderId) => {
+            const elementToCapture = document.querySelector(`#capture-${orderId}`);
+            if (!elementToCapture) {
+                showNotification('No measurement details found to save as image.', 'warning');
+                return;
+            }
+            const db = getDb();
+            const order = db.orders.find(o => o.id === orderId);
+            const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--light-color').trim();
+            html2canvas(elementToCapture, { useCORS: true, scale: 2, backgroundColor: bgColor || '#FFF8F3' })
+            .then(canvas => {
+                const link = document.createElement('a');
+                link.download = `measurements_${selectedTailor.name.replace(/\s+/g, '_')}_${order.designModel.replace(/\s+/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showNotification('Image saved!', 'success');
+            }).catch(err => {
+                console.error('html2canvas error:', err);
+                showNotification('Failed to save image.', 'error');
+            });
+        };
+
+        const shareMeasurement = (measurement) => {
+            if (!selectedTailor || !selectedTailor.phone) {
+                showNotification('Tailor has no phone number set.', 'warning');
+                return;
+            }
+            let message = `Measurements for Order:\n(Unit: ${localSettings.unit})\n\n`;
+            const fields = [
+                { l: 'Sleeves Width', v: measurement.sleevesWidth }, { l: 'Sleeves Height', v: measurement.sleevesHeight },
+                { l: 'Back Neck Width', v: measurement.backNeckWidth }, { l: 'Back Neck Height', v: measurement.backNeckHeight },
+                { l: 'Back Full Height', v: measurement.backFullHeight }, { l: 'Front Height', v: measurement.frontHeight }
+            ];
+            fields.forEach(f => message += `${f.l}: ${toUnit(f.v) || '--'}\n`);
+            if (measurement.customFields && measurement.customFields.length > 0) {
+                message += `\n--- Custom ---\n`;
+                measurement.customFields.forEach(field => message += `${field.name}: ${toUnit(field.value) || '--'}\n`);
+            }
+            const encodedMsg = encodeURIComponent(message);
+            const phone = selectedTailor.phone.replace(/\D/g, '');
+            window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+        };
+
+        const renderCustomFieldsInForm = (fields) => {
+            const container = document.getElementById('customFieldsFormContainer');
+            container.innerHTML = '';
+            if (!fields || fields.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-bottom: 10px;">No custom fields yet.</p>';
+                return;
+            }
+            fields.forEach((field, index) => {
+                container.innerHTML += `
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label class="form-label" style="flex-grow: 1; margin-bottom:0;">${field.name}</label>
+                        <input type="number" step="any" class="form-input" data-index="${index}" value="${toUnit(field.value)}" style="padding-left: 15px !important;">
+                        <button type="button" class="btn btn-danger action-btn" data-index="${index}" style="width: 40px; height: 40px;"><i class="fas fa-trash"></i></button>
+                    </div>`;
+            });
+        };
+
+        document.getElementById('addCustomFieldBtn').addEventListener('click', () => {
+            const nameInput = document.getElementById('customFieldNameInput');
+            const name = nameInput.value.trim();
+            if (name) {
+                if (currentCustomFields.some(f => f.name.toLowerCase() === name.toLowerCase())) {
+                     showNotification('Field name already exists.', 'warning');
+                     return;
+                }
+                currentCustomFields.push({ name, value: '' });
+                renderCustomFieldsInForm(currentCustomFields);
+                nameInput.value = '';
+            } else { showNotification('Please enter a field name.', 'warning'); }
+        });
+        
+        document.getElementById('customFieldsFormContainer').addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.btn-danger');
+            if (removeBtn) {
+                const index = parseInt(removeBtn.dataset.index, 10);
+                currentCustomFields.splice(index, 1);
+                renderCustomFieldsInForm(currentCustomFields);
+            }
+        });
+
         document.getElementById('addOrderBtn').addEventListener('click', () => openOrderModal(true));
-        document.getElementById('orderList').addEventListener('click', e => { const id = e.target.closest('.order-header')?.dataset.id; if (!id) return; const db = getDb(), order = db.orders.find(o=>o.id === id); if (e.target.closest('.action-btn.edit')) openOrderModal(false, order); else if(e.target.closest('.action-btn.delete')) deleteOrder(id); else if(e.target.closest('.action-btn.complete')) completeOrder(id); });
-        const openOrderModal = (isNew, order=null) => { document.getElementById('orderForm').reset(); document.getElementById('orderId').value = isNew ? '' : order.id; document.getElementById('designModelInput').value = isNew ? '' : order.designModel; document.getElementById('orderPriceInput').value = isNew ? '' : order.price; document.getElementById('orderFormTitle').textContent = isNew ? 'Add New Order' : 'Edit Order'; openModal('orderFormModal'); };
-        document.getElementById('orderForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const id = document.getElementById('orderId').value, designModel = document.getElementById('designModelInput').value, price = parseFloat(document.getElementById('orderPriceInput').value); const data = { tailorId: selectedTailor.id, designModel, price, status: 'Pending', createdAt: new Date().toISOString() }; if(id){ const index = db.orders.findIndex(o=>o.id === id); if(index > -1) db.orders[index] = {...db.orders[index], designModel, price}; } else { data.id = generateId(); db.orders.push(data); } saveDb(db); renderDashboard(); showNotification('Order saved!', 'success'); closeModal('orderFormModal'); });
-        const deleteOrder = id => { showConfirmation('Delete Order?', 'Are you sure?', () => { let db = getDb(); db.orders = db.orders.filter(o => o.id !== id); saveDb(db); renderDashboard(); showNotification('Order deleted.', 'success'); }); };
+        document.getElementById('orderList').addEventListener('click', e => {
+            const id = e.target.closest('.order-card')?.dataset.id;
+            if (!id) return;
+            const db = getDb(), order = db.orders.find(o => o.id === id);
+            if (e.target.closest('.action-btn.edit')) { openOrderModal(false, order); }
+            else if (e.target.closest('.action-btn.delete')) { deleteOrder(id); }
+            else if (e.target.closest('.action-btn.complete')) { completeOrder(id); }
+            else if (e.target.closest('.footer-btn.share')) { const measurement = db.measurements.find(m => m.id === order.measurementId); if (measurement) { shareMeasurement(measurement); } else { showNotification('No measurement to share.', 'warning'); } }
+            else if (e.target.closest('.footer-btn.save-image')) { if (order.measurementId) { saveImage(id); } else { showNotification('No measurement to save.', 'warning'); } }
+        });
+        const openOrderModal = (isNew, order = null) => {
+            const form = document.getElementById('orderForm');
+            form.reset();
+            document.getElementById('orderId').value = isNew ? '' : order.id;
+            document.getElementById('designModelInput').value = isNew ? '' : order.designModel;
+            document.getElementById('orderPriceInput').value = isNew ? '' : order.price;
+            document.getElementById('measurementId').value = isNew ? '' : order.measurementId;
+            const measurement = !isNew && order.measurementId ? getDb().measurements.find(m => m.id === order.measurementId) : null;
+            currentCustomFields = measurement && measurement.customFields ? JSON.parse(JSON.stringify(measurement.customFields)) : [];
+            document.querySelectorAll('#orderForm .unit-label').forEach(el => el.textContent = localSettings.unit);
+            document.querySelectorAll('#orderForm input[data-field]').forEach(i => i.value = measurement ? toUnit(measurement[i.dataset.field]) : '');
+            renderCustomFieldsInForm(currentCustomFields);
+            document.getElementById('orderFormTitle').textContent = isNew ? 'Add New Order' : 'Edit Order';
+            openModal('orderFormModal');
+        };
+        document.getElementById('orderForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const orderId = document.getElementById('orderId').value; const measurementId = document.getElementById('measurementId').value; const designModel = document.getElementById('designModelInput').value; const price = parseFloat(document.getElementById('orderPriceInput').value); const now = new Date(); const measurementData = { tailorId: selectedTailor.id, createdAt: now.toISOString(), customFields: [] }; document.querySelectorAll('#orderForm input[data-field]').forEach(i => measurementData[i.dataset.field] = toCm(i.value)); document.querySelectorAll('#customFieldsFormContainer input[data-index]').forEach(i => currentCustomFields[i.dataset.index].value = toCm(i.value)); measurementData.customFields = currentCustomFields; let newMeasurementId; if (measurementId) { const index = db.measurements.findIndex(m => m.id === measurementId); if (index > -1) { db.measurements[index] = { ...db.measurements[index], ...measurementData }; newMeasurementId = measurementId; } } else { newMeasurementId = generateId(); measurementData.id = newMeasurementId; measurementData.measurementName = `Meas. - ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`; db.measurements.push(measurementData); } const orderData = { tailorId: selectedTailor.id, designModel, price, status: 'Pending', createdAt: new Date().toISOString(), measurementId: newMeasurementId }; if(orderId){ const index = db.orders.findIndex(o=>o.id === orderId); if(index > -1) db.orders[index] = {...db.orders[index], designModel, price, measurementId: newMeasurementId}; } else { orderData.id = generateId(); orderData.status = 'Pending'; db.orders.push(orderData); } saveDb(db); renderDashboard(); showNotification('Order saved!', 'success'); closeModal('orderFormModal'); });
+        const deleteOrder = id => { showConfirmation('Delete Order?', 'Are you sure? This will not delete the associated measurements.', () => { let db = getDb(); db.orders = db.orders.filter(o => o.id !== id); saveDb(db); renderDashboard(); showNotification('Order deleted.', 'success'); }); };
         const completeOrder = id => { const db = getDb(); const index = db.orders.findIndex(o=>o.id === id); if(index > -1) db.orders[index].status = 'Completed'; saveDb(db); renderDashboard(); showNotification('Order marked as completed!', 'success'); };
 
         const renderPayments = () => { const db = getDb(); const payments = db.transactions.filter(t => t.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); const listEl = document.getElementById('paymentHistoryList'); listEl.innerHTML = ''; if(payments.length === 0) { listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No payments recorded yet.</p></div>`; return; } payments.forEach(p => listEl.innerHTML += `<div class="order-card" style="border-left-color: var(--info-color);"><div class="measurement-grid" style="padding: 20px;"><div class="measurement-item"><span class="order-label">Amount Paid</span><span class="order-value">₹${p.amount.toFixed(2)}</span></div><div class="measurement-item"><span class="order-label">Date</span><span class="order-value">${new Date(p.createdAt).toLocaleDateString()}</span></div></div></div>`); };
@@ -385,124 +580,133 @@
         document.getElementById('paymentForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const amount = parseFloat(document.getElementById('paymentAmountInput').value); db.transactions.push({ id: generateId(), tailorId: selectedTailor.id, amount, createdAt: new Date().toISOString() }); saveDb(db); renderDashboard(); showNotification('Payment recorded!', 'success'); closeModal('paymentFormModal'); });
         
         document.getElementById('whatsappShareBtn').addEventListener('click', () => {
-            if (!selectedTailor.phone || String(selectedTailor.phone).trim() === "") { 
+            if (!selectedTailor || !selectedTailor.phone || String(selectedTailor.phone).trim() === "") { 
                 showNotification('Please add a phone number to this tailor first.', 'warning');
                 openTailorModal(false, selectedTailor);
                 return;
             }
             const balance = document.getElementById('balanceDue').textContent;
-            const msg = encodeURIComponent(`Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`);
-            window.open(`https://wa.me/${selectedTailor.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+            const defaultMsg = `Hello ${selectedTailor.name},\nThis is a friendly reminder regarding your outstanding balance of ${balance} for embroidery services. Please arrange for the payment at your earliest convenience.\n\nThank you!`;
+            
+            document.getElementById('whatsappRecipientName').textContent = selectedTailor.name;
+            document.getElementById('whatsappMessageText').value = defaultMsg;
+            openModal('whatsappMessageModal');
         });
-        
-        const renderMeasurements = () => {
+
+        document.getElementById('whatsappMessageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!selectedTailor || !selectedTailor.phone) return;
+            
+            const message = document.getElementById('whatsappMessageText').value;
+            const encodedMsg = encodeURIComponent(message);
+            const phone = selectedTailor.phone.replace(/\D/g, '');
+
+            window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+            closeModal('whatsappMessageModal');
+        });
+
+        // --- START: SIMPLIFIED PDF GENERATION LOGIC (FINAL FIX) ---
+        const generateStatementPDF = () => {
+            const startDateInput = document.getElementById('statementStartDate').value;
+            const endDateInput = document.getElementById('statementEndDate').value;
+
+            if (!startDateInput || !endDateInput) {
+                showNotification('Please select both a start and end date.', 'error');
+                return;
+            }
+            
+            const startDate = new Date(startDateInput);
+            startDate.setHours(0, 0, 0, 0);
+
+            const endDate = new Date(endDateInput);
+            endDate.setHours(23, 59, 59, 999);
+
+            if (startDate > endDate) {
+                showNotification('Start date cannot be after the end date.', 'error');
+                return;
+            }
+            
+            showNotification('Generating statement...', 'warning');
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             const db = getDb();
-            const searchTerm = document.getElementById('measurementSearchInput').value.toLowerCase();
-            const measurements = db.measurements.filter(m => m.tailorId === selectedTailor.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
-            const filtered = measurements.filter(m => m.measurementName.toLowerCase().includes(searchTerm));
-            const listEl = document.getElementById('measurementList'); 
-            listEl.innerHTML = ''; 
-            
-            if(filtered.length === 0) {
-                listEl.innerHTML = `<div style="background:var(--light-color); color:var(--dark-color); padding: 20px; text-align: center; border-radius: 12px;"><p>No measurements for this tailor yet.</p></div>`;
-                return;
-            }
-            filtered.forEach(m => {
-                listEl.innerHTML += `
-                <div class="measurement-card" id="card-${m.id}"> 
-                    <div class="measurement-header">
-                        <h3 class="measurement-name">${m.measurementName}</h3>
-                        <div class="card-actions">
-                            <button class="action-btn edit" data-id="${m.id}" title="Edit Measurement"><i class="fas fa-edit"></i></button>
-                            <button class="action-btn delete" data-id="${m.id}" title="Delete Measurement"><i class="fas fa-trash"></i></button>
-                            <button class="action-btn expand" title="Expand/Collapse Details"><i class="fas fa-chevron-down"></i></button>
-                        </div>
-                    </div>
-                    <div class="measurement-details">
-                        <div class="measurement-grid">
-                            ${[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].map(f=>`<div class="measurement-item"><span class="measurement-label">${f.l}</span><span class="measurement-value">${fmt(f.v)}</span></div>`).join('')}
-                            ${(m.customFields||[]).map(f=>`<div class="measurement-item"><span class="measurement-label">${f.name}</span><span class="measurement-value">${fmt(f.value)}</span></div>`).join('')}
-                        </div>
-                        <div class="card-footer-actions">
-                            <button class="btn btn-success footer-btn share" data-id="${m.id}"><i class="fab fa-whatsapp"></i> Share</button>
-                            <button class="btn btn-warning footer-btn save-image" data-id="${m.id}"><i class="fas fa-camera"></i> Save Image</button>
-                        </div>
-                    </div>
-                </div>`;
+
+            const filteredOrders = db.orders.filter(o => {
+                const orderDate = new Date(o.createdAt);
+                return o.status === 'Completed' && orderDate >= startDate && orderDate <= endDate;
             });
-        };
 
-        document.getElementById('measurementList').addEventListener('click', (e) => { 
-            const card = e.target.closest('.measurement-card'); 
-            if (!card) return; 
-            const id = e.target.closest('[data-id]')?.dataset.id; 
-            const db = getDb(); 
-            const meas = id ? db.measurements.find(m => m.id === id) : null; 
-
-            if (e.target.closest('.action-btn.edit') && meas) openMeasurementModal(false, meas); 
-            else if (e.target.closest('.action-btn.delete') && meas) deleteMeasurement(id); 
-            else if (e.target.closest('.footer-btn.share') && meas) shareMeasurement(meas); 
-            else if (e.target.closest('.footer-btn.save-image') && meas) saveImage(meas); 
-            else if (e.target.closest('.measurement-header')) card.classList.toggle('expanded'); 
-        });
-        const openMeasurementModal = (isNew, meas=null) => { document.getElementById('measurementForm').reset(); document.getElementById('measurementId').value = isNew ? '' : meas.id; currentCustomFields = isNew ? [] : (meas.customFields ? JSON.parse(JSON.stringify(meas.customFields)) : []); document.getElementById('measurementFormTitle').textContent = isNew ? 'Add New Measurement' : 'Edit Measurement'; if (!isNew) document.querySelectorAll('#measurementForm input[data-field]').forEach(i => i.value = toUnit(meas[i.dataset.field])); document.querySelectorAll('.unit-label').forEach(el => el.textContent = localSettings.unit); renderCustomFieldsInForm(currentCustomFields); openModal('measurementFormModal'); };
-        const renderCustomFieldsInForm = (fields=[])=>{const c=document.getElementById('customFieldsFormContainer');c.innerHTML=fields.map((f,i)=>`<div class="form-group"><label class="form-label">${f.name}</label><div class="custom-field-form"><input type="number" step="any" class="form-input" data-index="${i}" value="${toUnit(f.value)}"><button type="button" class="btn btn-danger" onclick="window.removeCustomField(${i})"><i class="fas fa-trash"></i></button></div></div>`).join('');};
-        document.getElementById('addCustomFieldBtn').addEventListener('click',()=>{const n=document.getElementById('customFieldNameInput');if(n.value){currentCustomFields.push({name:n.value,value:null});renderCustomFieldsInForm(currentCustomFields);n.value='';}});
-        window.removeCustomField=(i)=>{currentCustomFields.splice(i,1);renderCustomFieldsInForm(currentCustomFields);};
-        const deleteMeasurement = id => { showConfirmation('Delete Measurement?', 'This cannot be undone.', () => { let db = getDb(); db.measurements = db.measurements.filter(m => m.id !== id); saveDb(db); renderMeasurements(); showNotification('Measurement deleted.', 'success'); }); };
-        const shareMeasurement=meas=>{if(!meas)return;const getTxt=(m)=>{let t=`Measurements for ${m.measurementName}:\n\n`;[{l:'Sleeves Width',v:m.sleevesWidth},{l:'Sleeves Height',v:m.sleevesHeight},{l:'Back Neck Width',v:m.backNeckWidth},{l:'Back Neck Height',v:m.backNeckHeight},{l:'Back Full Height',v:m.backFullHeight},{l:'Front Height',v:m.frontHeight}].forEach(f=>{t+=`${f.l}: ${fmt(f.v).replace(/<[^>]*>?/gm,'')}\n`});(m.customFields||[]).forEach(f=>{t+=`${f.name}: ${fmt(f.value).replace(/<[^>]*>?/gm,'')}\n`});return t};const encodedText=encodeURIComponent(getTxt(meas));window.open(`https://wa.me/?text=${encodedText}`,'_blank');};
-        
-        // --- UPDATED saveImage function for filename ---
-        const saveImage = (measurementObject) => {
-            if (!measurementObject || !measurementObject.id) {
-                showNotification('Invalid measurement data for saving image.', 'error');
-                return;
-            }
-            const id = measurementObject.id;
-            const card = document.getElementById(`card-${id}`); 
-
-            if (!card) { 
-                showNotification('Could not find measurement card to save.', 'error');
-                return;
-            }
-
-            const tailorName = selectedTailor ? selectedTailor.name.replace(/\s+/g, '_') : 'UnknownTailor';
-            const measNameRaw = measurementObject.measurementName || `Meas-${id}`;
-            // Sanitize the existing measurement name, which includes a date/time
-            const measNameSanitized = measNameRaw.replace(/[\/:]/g, '-').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, ''); 
+            const filteredTransactions = db.transactions.filter(t => {
+                const transDate = new Date(t.createdAt);
+                return transDate >= startDate && transDate <= endDate;
+            });
             
-            // Construct filename using only tailor name and the (already date/time stamped) sanitized measurement name
-            const newFilename = `${tailorName}_${measNameSanitized}.png`;
+            let finalY = 28;
 
-            const wasExp = card.classList.contains('expanded');
-            if (!wasExp) card.classList.add('expanded');
+            // 1. Document Header
+            doc.setFontSize(18);
+            doc.text('Financial Statement', 105, 15, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`For: ${currentUser.displayName || currentUser.email}`, 15, 25);
+            doc.text(`Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`, 15, 30);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 195, 25, { align: 'right' });
             
-            setTimeout(() => {
-                html2canvas(card, {
-                    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--light-color').trim() || '#FFF8F3', 
-                    logging: true, 
-                    useCORS: true 
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = newFilename; 
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    if (!wasExp) card.classList.remove('expanded');
-                    showNotification('Image saved!', 'success');
-                }).catch(err => {
-                    console.error("Error saving image: ", err);
-                    showNotification('Could not save image. See console for details.', 'error');
+            // 2. Overall Summary
+            const totalBilled = filteredOrders.reduce((sum, o) => sum + o.price, 0);
+            const totalPaid = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+            doc.setFontSize(12);
+            doc.text('Overall Summary', 15, 45);
+            doc.autoTable({
+                startY: 50,
+                theme: 'striped',
+                head: [['Description', 'Amount (INR)']], // Definitive fix for the header
+                body: [
+                    ['Total Billed (Completed Orders)', totalBilled.toFixed(2)],
+                    ['Total Payments Received', totalPaid.toFixed(2)]
+                ],
+                didDrawPage: (data) => { finalY = data.cursor.y; }
+            });
+
+            // 3. Consolidated Payments Table
+            if (filteredTransactions.length > 0) {
+                 finalY = doc.autoTable.previous.finalY + 15;
+                 doc.setFontSize(14);
+                 doc.text('All Payments Received', 15, finalY);
+                 doc.autoTable({
+                    startY: finalY + 5,
+                    head: [['Date', 'Received From (Tailor)', 'Amount (INR)']], // Definitive fix for the header
+                    body: filteredTransactions.map(t => {
+                        const tailorName = db.tailors.find(tailor => tailor.id === t.tailorId)?.name || 'Unknown';
+                        return [
+                            new Date(t.createdAt).toLocaleDateString(),
+                            tailorName,
+                            t.amount.toFixed(2)
+                        ];
+                    }),
+                    didDrawPage: (data) => { finalY = data.cursor.y; }
                 });
-            }, 200);
-        };
-        // --- END OF UPDATED saveImage ---
+            }
+            
+            // 4. Add Page Numbers
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.text(`Page ${i} of ${pageCount}`, 195, 285, { align: 'right' });
+            }
 
-        document.getElementById('measurementSearchInput').addEventListener('input', renderMeasurements);
-        document.getElementById('addMeasurementBtn').addEventListener('click', () => openMeasurementModal(true));
-        document.getElementById('measurementForm').addEventListener('submit', e => { e.preventDefault(); const db = getDb(); const id = document.getElementById('measurementId').value; const now = new Date(); const data = { tailorId: selectedTailor.id, createdAt: now.toISOString() }; document.querySelectorAll('#measurementForm input[data-field]').forEach(i => data[i.dataset.field] = toCm(i.value)); document.querySelectorAll('#customFieldsFormContainer input').forEach(i=>currentCustomFields[i.dataset.index].value=toCm(i.value)); data.customFields = currentCustomFields; if(id){ const index = db.measurements.findIndex(m=>m.id === id); if(index > -1) db.measurements[index] = {...db.measurements[index], ...data}; } else { data.id = generateId(); data.measurementName = `Meas. - ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`; db.measurements.push(data); } saveDb(db); renderMeasurements(); showNotification('Measurement saved!', 'success'); closeModal('measurementFormModal'); });
+            // 5. Save the PDF
+            doc.save(`Financial_Statement_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.pdf`);
+            showNotification('PDF Statement generated!', 'success');
+        };
+        // --- END: SIMPLIFIED PDF GENERATION LOGIC ---
+
+        document.getElementById('generatePdfBtn').addEventListener('click', generateStatementPDF);
 
         document.getElementById('settingsBtn').addEventListener('click', () => { document.getElementById('unitSelect').value = localSettings.unit; openModal('settingsModal'); });
-        document.getElementById('unitSelect').addEventListener('change', e => { localSettings.unit = e.target.value; localStorage.setItem('blouse_settings', JSON.stringify(localSettings)); if(selectedTailor) renderMeasurements(); });
+        document.getElementById('unitSelect').addEventListener('change', e => { localSettings.unit = e.target.value; localStorage.setItem('blouse_settings', JSON.stringify(localSettings)); if(selectedTailor) renderDashboard(); });
         document.getElementById('backupBtn').addEventListener('click', () => { if(!currentUser) return; const data = localStorage.getItem(`embroiderySuite_${currentUser.uid}`); const blob = new Blob([data], { type: 'application/json' }); const link = document.createElement('a'); link.download = 'embroidery_suite_backup.json'; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); showNotification('Backup downloaded.', 'success');});
         
         const mergeData = (backupData) => { const currentDb = getDb(); backupData.tailors.forEach(bt => { if (!currentDb.tailors.some(t => t.name.toLowerCase() === bt.name.toLowerCase())) currentDb.tailors.push({...bt, id: generateId()}); }); saveDb(currentDb); const freshDb = getDb(); backupData.measurements.forEach(bm => { const backupTailorName = backupData.tailors.find(t=>t.id===bm.tailorId)?.name; const liveTailor = freshDb.tailors.find(t=>t.name.toLowerCase()===backupTailorName?.toLowerCase()); if(liveTailor && !freshDb.measurements.some(m => m.measurementName === bm.measurementName && m.tailorId === liveTailor.id)) { freshDb.measurements.push({...bm, id: generateId(), tailorId: liveTailor.id}); } }); ['orders', 'transactions'].forEach(key => { backupData[key].forEach(item => { const backupTailorName = backupData.tailors.find(t => t.id === item.tailorId)?.name; const liveTailor = freshDb.tailors.find(t => t.name.toLowerCase() === backupTailorName?.toLowerCase()); if (liveTailor && !freshDb[key].some(i => i.createdAt === item.createdAt && i.tailorId === liveTailor.id)) { freshDb[key].push({ ...item, id: generateId(), tailorId: liveTailor.id }); } }); }); saveDb(freshDb); loadAndRenderTailors(); };
